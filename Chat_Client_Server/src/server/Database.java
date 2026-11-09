@@ -9,6 +9,14 @@ import java.util.*;
 public class Database {
     private final String url, user, pass;
 
+    static {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            System.err.println("❌ Không tìm thấy MySQL JDBC Driver! Hãy kiểm tra thư viện mysql-connector trong lib.");
+        }
+    }
+
     public Database(String url, String user, String pass) {
         this.url = url;
         this.user = user;
