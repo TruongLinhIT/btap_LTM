@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Java HTTP Web Server - Trang chu</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; color: #202124; }
+        .header { background: #1a73e8; color: white; padding: 20px; border-radius: 8px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 5px 0 0; font-size: 14px; opacity: 0.9; }
+        .section { background: white; margin-top: 15px; padding: 18px; border-radius: 8px; border: 1px solid #dadce0; }
+        .section h2 { margin-top: 0; color: #1a73e8; font-size: 18px; border-bottom: 2px solid #e8f0fe; padding-bottom: 6px; }
+        .badge { display: inline-block; padding: 4px 10px; background: #e6f4ea; color: #137333; border-radius: 4px; font-weight: bold; font-size: 12px; }
+        .card-grid { margin-top: 10px; }
+        .card { background: #f1f3f4; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; margin-bottom: 10px; }
+        .card h3 { margin: 0 0 5px; font-size: 15px; color: #3c4043; }
+        .btn { display: inline-block; padding: 6px 12px; background: #1a73e8; color: white; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: bold; }
+        .btn-green { background: #34a853; }
+        .btn-orange { background: #ea4335; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #dadce0; padding: 8px 12px; text-align: left; font-size: 13px; }
+        th { background: #e8f0fe; color: #1a73e8; }
+        .footer { text-align: center; margin-top: 25px; font-size: 12px; color: #5f6368; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>HE THONG WEB SERVER & WEB CLIENT (BROWSER)</h1>
+        <p>Bai tap mon Lap trinh Mang - Ho tro HTTP GET, HEAD, POST va Da phuong tien</p>
+    </div>
+
+    <div class="section">
+        <h2>1. Danh sach cac Dịch vụ Server (Multimedia & Files)</h2>
+        <p>Server ho tro phuc vu nhieu dinh dang file khac nhau (.pdf, .mp3, .mp4, .png, .wav, .html, .txt):</p>
+        
+        <table>
+            <tr>
+                <th>Dịch vụ</th>
+                <th>Tên file</th>
+                <th>MIME Type</th>
+                <th>Thao tác</th>
+            </tr>
+            <tr>
+                <td><b>Tài liệu PDF</b></td>
+                <td>sample.pdf</td>
+                <td>application/pdf</td>
+                <td><a href="/sample.pdf" class="btn">Xem / Tai PDF</a></td>
+            </tr>
+            <tr>
+                <td><b>Âm thanh MP3</b></td>
+                <td>sample.mp3</td>
+                <td>audio/mpeg</td>
+                <td><a href="/sample.mp3" class="btn btn-green">Nghe / Tai MP3</a></td>
+            </tr>
+            <tr>
+                <td><b>Âm thanh WAV</b></td>
+                <td>sample.wav</td>
+                <td>audio/wav</td>
+                <td><a href="/sample.wav" class="btn btn-green">Nghe / Tai WAV</a></td>
+            </tr>
+            <tr>
+                <td><b>Video MP4</b></td>
+                <td>sample.mp4</td>
+                <td>video/mp4</td>
+                <td><a href="/sample.mp4" class="btn btn-orange">Xem / Tai MP4</a></td>
+            </tr>
+            <tr>
+                <td><b>Hình ảnh PNG</b></td>
+                <td>sample.png</td>
+                <td>image/png</td>
+                <td><a href="/sample.png" class="btn">Xem hinh anh</a></td>
+            </tr>
+            <tr>
+                <td><b>File van ban</b></td>
+                <td>sample.txt</td>
+                <td>text/plain</td>
+                <td><a href="/sample.txt" class="btn">Xem van ban</a></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>2. Thu nghiem Phuong thuc HTTP POST</h2>
+        <p>Gui du lieu tu form Client len Web Server bang phuong thuc POST:</p>
+        <form action="/api/submit" method="POST">
+            <p>
+                <b>Ho va ten:</b><br>
+                <input type="text" name="hoten" value="Nguyen Van A" style="width: 300px; padding: 6px; margin-top: 4px;">
+            </p>
+            <p>
+                <b>Ma sinh vien:</b><br>
+                <input type="text" name="masv" value="21IT001" style="width: 300px; padding: 6px; margin-top: 4px;">
+            </p>
+            <p>
+                <b>Tin nhan / Y kien:</b><br>
+                <textarea name="noidung" rows="3" style="width: 300px; padding: 6px; margin-top: 4px;">Thu nghiem HTTP POST tren Java Server</textarea>
+            </p>
+            <p>
+                <input type="submit" value="Gui du lieu POST len Server" class="btn btn-orange" style="cursor: pointer; padding: 8px 16px;">
+            </p>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2>3. Kiem tra HTTP HEAD & Cac trang khac</h2>
+        <ul>
+            <li><a href="/post_test.html">Trang kiem tra POST chuyen sau (post_test.html)</a></li>
+            <li><a href="/khong-ton-tai.html">Kiem tra trang loi 404 (File Not Found)</a></li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        <p>Java Multi-threaded HTTP/1.1 Server & Web Browser Client - LTM 2026</p>
+    </div>
+
+</body>
+</html>

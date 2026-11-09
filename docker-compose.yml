@@ -1,0 +1,31 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ltm-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      TZ: Asia/Ho_Chi_Minh
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      # Cổng 3306 trên máy bạn đang bị chiếm (bởi MySQL cài trên Windows hoặc container khác)
+      # nên đổi sang cổng 3308. Khi kết nối từ Java/tool chỉ cần dùng port 3308.
+      - "3308:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: ltm-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 64M
+    ports:
+      - "8085:80"
+    depends_on:
+      - mysql
+
+volumes:
+  mysql_data:

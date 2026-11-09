@@ -1,0 +1,8 @@
+=== TAI LIEU TEXT THU NGHIEM (SAMPLE.TXT) ===
+Mon hoc: Lap trinh Mang (LTM)
+De tai: Web Server & Web Client (Browser)
+Giao thuc ho tro: HTTP/1.1 (GET, HEAD, POST)
+Dich vu da phuong tien: .pdf, .mp3, .mp4, .png, .wav, .txt, .html
+
+Chuc mung ban da ket noi thanh cong den Web Server qua Web Client Browser!
+Day la file van ban kiem tra chuc nang doc file text va download file.

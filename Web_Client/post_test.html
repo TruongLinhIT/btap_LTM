@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Kiem Tra HTTP POST & HEAD - Java Web Server</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f8f9fa; color: #202124; }
+        .container { max-width: 700px; margin: auto; background: white; padding: 25px; border-radius: 8px; border: 1px solid #dadce0; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        h1 { color: #1a73e8; font-size: 22px; margin-top: 0; }
+        label { display: block; margin-top: 12px; font-weight: bold; font-size: 13px; }
+        input[type="text"], textarea, select { width: 100%; box-sizing: border-box; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+        .btn { display: inline-block; padding: 9px 18px; background: #1a73e8; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 13px; }
+        .btn:hover { background: #1557b0; }
+        .back-link { display: inline-block; margin-top: 20px; color: #1a73e8; text-decoration: none; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Thu Nghiem Phuong Thuc HTTP POST</h1>
+        <p>Gui du lieu tu trinh duyet Web Client len Web Server (Cổng 8080):</p>
+        
+        <form action="/api/submit" method="POST">
+            <label for="hoten">Ho va Ten:</label>
+            <input type="text" id="hoten" name="hoten" value="Nguyen Van A" required>
+            
+            <label for="masv">Ma Sinh Vien:</label>
+            <input type="text" id="masv" name="masv" value="21IT001" required>
+
+            <label for="lop">Lop hoc phan:</label>
+            <input type="text" id="lop" name="lop" value="21IT.EB01 - Lap trinh mang">
+            
+            <label for="dichvu">Dich vu can kiem tra:</label>
+            <select id="dichvu" name="dichvu">
+                <option value="HTTP_GET">HTTP GET (Tai trang HTML, text, multimedia)</option>
+                <option value="HTTP_HEAD">HTTP HEAD (Lay thong tin Response Headers)</option>
+                <option value="HTTP_POST" selected>HTTP POST (Gui bieu mau, form-data)</option>
+                <option value="DOWNLOAD">Download (.pdf, .mp3, .mp4, .png, .wav)</option>
+            </select>
+            
+            <label for="noidung">Noi dung phan hoi:</label>
+            <textarea id="noidung" name="noidung" rows="4">Day la du lieu POST gui tu form trinh duyet.</textarea>
+            
+            <button type="submit" class="btn">Gui Du Lieu POST Len Server</button>
+        </form>
+
+        <a href="/" class="back-link">&larr; Quay ve Trang Chu</a>
+    </div>
+</body>
+</html>
