@@ -18,9 +18,9 @@ public class ClientApp {
         header.setBackground(new Color(0, 132, 255));
         header.setBorder(BorderFactory.createEmptyBorder(16, 20, 16, 20));
         JLabel t = new JLabel("💬 Chat LTM");
-        t.setFont(new Font("Segoe UI Emoji", Font.BOLD, 26));
+        t.setFont(new Font("Segoe UI", Font.BOLD, 24));
         t.setForeground(Color.WHITE);
-        JLabel s = new JLabel("Chat Client-Server (TCP + UDP + MySQL)");
+        JLabel s = new JLabel("Chat Client-Server (TCP + MySQL)");
         s.setForeground(new Color(220, 235, 255));
         header.add(t);
         header.add(s);
@@ -29,10 +29,8 @@ public class ClientApp {
         JTextField port = new JTextField("5000", 16);
         JTextField user = new JTextField(16);
         JPasswordField pass = new JPasswordField(16);
-        JButton login = new JButton("Đăng nhập");
-        JButton reg = new JButton("Đăng ký");
-        login.setBackground(new Color(0, 132, 255));
-        login.setForeground(Color.WHITE);
+        JButton login = createPrimaryButton("Đăng nhập");
+        JButton reg = createSecondaryButton("Đăng ký");
         JLabel status = new JLabel(" ");
         status.setForeground(Color.RED);
 
@@ -46,11 +44,15 @@ public class ClientApp {
         for (int i = 0; i < 4; i++) {
             c.gridx = 0;
             c.gridy = i;
-            form.add(new JLabel(labels[i]), c);
+            JLabel lbl = new JLabel(labels[i]);
+            lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            form.add(lbl, c);
             c.gridx = 1;
+            fields[i].setFont(new Font("Segoe UI", Font.PLAIN, 13));
             form.add(fields[i], c);
         }
-        JPanel btns = new JPanel(new GridLayout(1, 2, 8, 0));
+        JPanel btns = new JPanel(new GridLayout(1, 2, 10, 0));
+        btns.setPreferredSize(new Dimension(0, 36));
         btns.add(login);
         btns.add(reg);
         c.gridx = 0;
@@ -110,5 +112,59 @@ public class ClientApp {
         f.pack();
         f.setLocationRelativeTo(null);
         f.setVisible(true);
+    }
+
+    static JButton createPrimaryButton(String text) {
+        JButton b = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (!isEnabled()) {
+                    g2.setColor(new Color(170, 195, 225));
+                } else if (getModel().isPressed()) {
+                    g2.setColor(new Color(0, 105, 217));
+                } else if (getModel().isRollover()) {
+                    g2.setColor(new Color(24, 144, 255));
+                } else {
+                    g2.setColor(new Color(0, 132, 255));
+                }
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        b.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        b.setForeground(Color.WHITE);
+        b.setContentAreaFilled(false);
+        b.setBorderPainted(false);
+        b.setFocusPainted(false);
+        b.setOpaque(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    static JButton createSecondaryButton(String text) {
+        JButton b = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ? new Color(240, 242, 245) : Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.setColor(new Color(200, 205, 215));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        b.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        b.setForeground(new Color(50, 50, 50));
+        b.setContentAreaFilled(false);
+        b.setBorderPainted(false);
+        b.setFocusPainted(false);
+        b.setOpaque(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
     }
 }

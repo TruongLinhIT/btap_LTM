@@ -3,6 +3,7 @@ package client;
 import common.Packet;
 
 import javax.imageio.ImageIO;
+import javax.sound.sampled.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -48,8 +49,6 @@ public class MainFrame extends JFrame {
     private final JTextField input = new JTextField();
     private final JLabel title = new JLabel("Chọn một cuộc trò chuyện");
     private final JLabel subtitle = new JLabel(" ");
-    private final JToggleButton callBtn = new JToggleButton("📞 Gọi thoại");
-    private final JToggleButton videoBtn = new JToggleButton("🎥 Video");
     private final JButton micBtn = new JButton("🎤");
 
     private Conv current;
@@ -155,10 +154,26 @@ public class MainFrame extends JFrame {
         top.setBackground(BLUE);
         top.setBorder(new EmptyBorder(12, 14, 12, 10));
         JLabel who = new JLabel("👤 " + me);
-        who.setFont(new Font("Segoe UI Emoji", Font.BOLD, 16));
+        who.setFont(new Font("Segoe UI", Font.BOLD, 16));
         who.setForeground(Color.WHITE);
-        JButton newGroup = new JButton("＋ Nhóm");
-        newGroup.setFocusable(false);
+        JButton newGroup = new JButton("＋ Nhóm") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ? new Color(240, 245, 255) : Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        newGroup.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        newGroup.setForeground(new Color(0, 102, 204));
+        newGroup.setContentAreaFilled(false);
+        newGroup.setBorderPainted(false);
+        newGroup.setFocusPainted(false);
+        newGroup.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        newGroup.setPreferredSize(new Dimension(80, 28));
         newGroup.addActionListener(e -> createGroupDialog());
         top.add(who, BorderLayout.CENTER);
         top.add(newGroup, BorderLayout.EAST);
@@ -182,7 +197,7 @@ public class MainFrame extends JFrame {
                     }
                 }
                 c.setText("<html>" + (n > 0 ? "<b>" : "") + name + badge + (n > 0 ? "</b>" : "") + "</html>");
-                c.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
+                c.setFont(new Font("Segoe UI", Font.PLAIN, 14));
                 c.setBorder(new EmptyBorder(0, 12, 0, 8));
                 return c;
             }
@@ -201,27 +216,16 @@ public class MainFrame extends JFrame {
         JPanel area = new JPanel(new BorderLayout());
 
         JPanel header = new JPanel(new BorderLayout());
-        header.setBorder(new EmptyBorder(8, 14, 8, 14));
+        header.setBorder(new EmptyBorder(10, 14, 10, 14));
         header.setBackground(Color.WHITE);
-        title.setFont(new Font("Segoe UI Emoji", Font.BOLD, 17));
+        title.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         subtitle.setForeground(Color.GRAY);
-        JPanel titles = new JPanel(new GridLayout(2, 1));
+        JPanel titles = new JPanel(new GridLayout(2, 1, 0, 2));
         titles.setOpaque(false);
         titles.add(title);
         titles.add(subtitle);
-        JPanel calls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 6));
-        calls.setOpaque(false);
-        for (JToggleButton b : List.of(callBtn, videoBtn)) {
-            b.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 13));
-            b.setFocusable(false);
-            calls.add(b);
-        }
-        callBtn.setToolTipText("Gọi thoại realtime qua UDP tới người/nhóm đang chọn");
-        videoBtn.setToolTipText("Phát video (chia sẻ màn hình) realtime qua UDP");
-        callBtn.addActionListener(e -> toggleCall());
-        videoBtn.addActionListener(e -> toggleVideo());
         header.add(titles, BorderLayout.CENTER);
-        header.add(calls, BorderLayout.EAST);
 
         JPanel bottom = new JPanel(new BorderLayout(6, 0));
         bottom.setBorder(new EmptyBorder(8, 10, 8, 10));
@@ -239,10 +243,8 @@ public class MainFrame extends JFrame {
         input.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         input.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(200, 200, 205)), new EmptyBorder(6, 8, 6, 8)));
-        JButton send = new JButton("Gửi ➤");
-        send.setBackground(BLUE);
-        send.setForeground(Color.WHITE);
-        send.setFocusable(false);
+        JButton send = createPrimaryButton("Gửi ➤");
+        send.setPreferredSize(new Dimension(85, 36));
         bottom.add(tools, BorderLayout.WEST);
         bottom.add(input, BorderLayout.CENTER);
         bottom.add(send, BorderLayout.EAST);
@@ -307,14 +309,6 @@ public class MainFrame extends JFrame {
     }
 
     private void select(Conv c) {
-        if (callBtn.isSelected()) {
-            callBtn.setSelected(false);
-            toggleCall();
-        }
-        if (videoBtn.isSelected()) {
-            videoBtn.setSelected(false);
-            toggleVideo();
-        }
         current = c;
         unread.remove(c.id());
         convList.repaint();
@@ -475,28 +469,6 @@ public class MainFrame extends JFrame {
         }
     }
 
-    private void toggleCall() {
-        if (callBtn.isSelected() && current != null) {
-            media.startAudio(recipients());
-            callBtn.setText("📞 Đang gọi...");
-        } else {
-            media.stopAudio();
-            callBtn.setSelected(false);
-            callBtn.setText("📞 Gọi thoại");
-        }
-    }
-
-    private void toggleVideo() {
-        if (videoBtn.isSelected() && current != null) {
-            media.startVideo(recipients());
-            videoBtn.setText("🎥 Đang phát...");
-        } else {
-            media.stopVideo();
-            videoBtn.setSelected(false);
-            videoBtn.setText("🎥 Video");
-        }
-    }
-
     private void createGroupDialog() {
         JTextField name = new JTextField();
         List<String> others = new ArrayList<>(allUsers);
@@ -581,22 +553,34 @@ public class MainFrame extends JFrame {
                 });
             }
             case "AUDIO" -> {
-                JButton play = new JButton("▶  " + (fname.startsWith("voice_") ? "Tin nhắn thoại" : fname));
-                play.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
+                JPanel audioBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+                audioBox.setOpaque(false);
+                JButton play = new JButton("▶ " + (fname.startsWith("voice_") ? "Nghe voice" : fname));
+                play.setFont(new Font("Segoe UI", Font.PLAIN, 13));
                 play.setFocusable(false);
-                play.addActionListener(e -> fetch(id, p -> playAudio(p.data, fname)));
-                b.add(play);
+                play.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                play.addActionListener(e -> fetch(id, p -> playAudio(p.data, fname, play)));
+
+                JButton dl = new JButton("💾 Tải về");
+                dl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                dl.setFocusable(false);
+                dl.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                dl.addActionListener(e -> fetch(id, p -> saveFile(fname, p.data)));
+
+                audioBox.add(play);
+                audioBox.add(dl);
+                b.add(audioBox);
             }
             case "VIDEO" -> {
                 JButton v = new JButton("🎬  " + fname + "  (bấm để phát)");
-                v.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
+                v.setFont(new Font("Segoe UI", Font.PLAIN, 13));
                 v.setFocusable(false);
                 v.addActionListener(e -> fetch(id, p -> openTemp(fname, p.data)));
                 b.add(v);
             }
             case "FILE" -> {
                 JButton f = new JButton("📎  " + fname + "  (bấm để lưu)");
-                f.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
+                f.setFont(new Font("Segoe UI", Font.PLAIN, 13));
                 f.setFocusable(false);
                 f.addActionListener(e -> fetch(id, p -> saveFile(fname, p.data)));
                 b.add(f);
@@ -648,16 +632,41 @@ public class MainFrame extends JFrame {
         d.setVisible(true);
     }
 
-    private void playAudio(byte[] data, String fname) {
+    private void playAudio(byte[] data, String fname, JButton btn) {
         new Thread(() -> {
-            try (var ais = javax.sound.sampled.AudioSystem.getAudioInputStream(new ByteArrayInputStream(data));
-                 var clip = javax.sound.sampled.AudioSystem.getClip()) {
-                clip.open(ais);
-                clip.start();
-                Thread.sleep(100);
-                while (clip.isRunning()) Thread.sleep(100);
+            String oldText = btn.getText();
+            SwingUtilities.invokeLater(() -> btn.setText("🔊 Đang phát..."));
+            try {
+                try (ByteArrayInputStream bais = new ByteArrayInputStream(data);
+                     AudioInputStream ais = AudioSystem.getAudioInputStream(bais)) {
+                    AudioFormat baseFormat = ais.getFormat();
+                    AudioFormat targetFormat = new AudioFormat(
+                            AudioFormat.Encoding.PCM_SIGNED,
+                            baseFormat.getSampleRate(),
+                            16,
+                            baseFormat.getChannels(),
+                            baseFormat.getChannels() * 2,
+                            baseFormat.getSampleRate(),
+                            false
+                    );
+                    try (AudioInputStream dais = AudioSystem.getAudioInputStream(targetFormat, ais);
+                         SourceDataLine line = AudioSystem.getSourceDataLine(targetFormat)) {
+                        line.open(targetFormat);
+                        line.start();
+                        byte[] buf = new byte[4096];
+                        int r;
+                        while ((r = dais.read(buf, 0, buf.length)) != -1) {
+                            line.write(buf, 0, r);
+                        }
+                        line.drain();
+                        line.stop();
+                    }
+                }
             } catch (Exception e) {
-                SwingUtilities.invokeLater(() -> openTemp(fname, data)); // định dạng khác (mp3...) -> mở bằng trình phát hệ thống
+                // Nếu Java Sound bị lỗi thiết bị, mở bằng trình phát hệ thống (Media Player/VLC...)
+                SwingUtilities.invokeLater(() -> openTemp(fname, data));
+            } finally {
+                SwingUtilities.invokeLater(() -> btn.setText(oldText));
             }
         }).start();
     }
@@ -683,5 +692,35 @@ public class MainFrame extends JFrame {
         } catch (IOException e) {
             showError("Không lưu được: " + e.getMessage());
         }
+    }
+
+    public static JButton createPrimaryButton(String text) {
+        JButton b = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (!isEnabled()) {
+                    g2.setColor(new Color(170, 195, 225));
+                } else if (getModel().isPressed()) {
+                    g2.setColor(new Color(0, 105, 217));
+                } else if (getModel().isRollover()) {
+                    g2.setColor(new Color(24, 144, 255));
+                } else {
+                    g2.setColor(new Color(0, 132, 255));
+                }
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        b.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        b.setForeground(Color.WHITE);
+        b.setContentAreaFilled(false);
+        b.setBorderPainted(false);
+        b.setFocusPainted(false);
+        b.setOpaque(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
     }
 }

@@ -9,44 +9,38 @@
 | **Multicast** | "＋ Nhóm": tạo nhóm chọn thành viên, server chỉ gửi tới **thành viên nhóm** (lưu DB) |
 | Unicast | Chat riêng 1-1 |
 | Icon biểu cảm | Nút 😀 mở bảng emoji (Unicode, lưu MySQL utf8mb4) |
-| Text – Audio – Video | Text; **tin nhắn thoại** (ghi âm → WAV); **gọi thoại realtime**; **video realtime** (UDP); gửi file video |
+| Text – Audio | Text; **tin nhắn thoại** (ghi âm → WAV, có nút phát trực tiếp & tải về máy); gửi file video/ảnh |
 | Đính kèm | Nút 📎: ảnh (hiển thị trực tiếp), video, âm thanh, tệp bất kỳ ≤ 50MB |
 | Database | MySQL 8 chạy bằng Docker: `users`, `chat_groups`, `group_members`, `messages` |
 | 5–6 client | Chạy `run-client.bat` nhiều lần (mỗi lần 1 client) |
 
-## TCP vs UDP (để trả lời vấn đáp)
+## Kiến trúc TCP
 
-- **TCP (cổng 5000)** – cần *tin cậy, đúng thứ tự*: đăng ký/đăng nhập, text, emoji, tạo nhóm, lịch sử,
-  gửi/nhận file, ảnh, tin nhắn thoại. Mỗi client 1 kết nối, server 1 thread/client (`ClientHandler`).
+- **TCP (cổng 5000)** – truyền tin cậy, đúng thứ tự: đăng ký/đăng nhập, text, emoji, tạo nhóm, lịch sử,
+  gửi/nhận file, ảnh, tin nhắn thoại (.wav). Mỗi client 1 kết nối, server 1 thread/client (`ClientHandler`).
   Giao thức tự định nghĩa: `common.Packet` (type + các field + data nhị phân).
-- **UDP (cổng 5001)** – cần *độ trễ thấp, chấp nhận mất gói*: **gọi thoại** và **video** realtime
-  (`UdpRelay` trên server chuyển tiếp gói cho người nhận; gói bị mất thì bỏ qua, không gửi lại).
-  Client đăng ký địa chỉ UDP bằng gói HELLO kèm *token* cấp qua TCP khi đăng nhập (chống giả mạo).
-  - Âm thanh: PCM 16 kHz, 16-bit, mono, mỗi gói 1024 byte.
-  - Video: ảnh JPEG 480px, ~8 fps (nguồn là chia sẻ màn hình bằng `java.awt.Robot`).
-- Broadcast/Multicast: ở tầng ứng dụng – server lặp qua danh sách người nhận (tất cả online / thành viên nhóm).
-  Với UDP: trường `recipients` = `*` (broadcast) hoặc danh sách tên (unicast/multicast).
+- **Broadcast/Multicast**: ở tầng ứng dụng – server lặp qua danh sách người nhận (tất cả online / thành viên nhóm).
 
 ## Chạy
 
-Yêu cầu: JDK (đã dùng JDK 27), Docker Desktop.
+Yêu cầu: JDK, Docker Desktop.
 
 ```bat
-docker compose up -d        :: MySQL ở localhost:3309 (db chatdb, user chat / chat123)
+docker compose up -d        :: MySQL ở localhost:3308 (db chatdb)
 build.bat                   :: biên dịch vào thư mục out
 run-server.bat              :: chạy server (tự tạo bảng)
-run-client.bat              :: chạy mỗi client (mở 5–6 lần)
+run-client.bat              :: chạy mỗi client (mở nhiều client)
 ```
 
 Client: nhập Server `localhost` (hoặc IP máy chạy server nếu test nhiều máy), Port `5000`, bấm **Đăng ký**
-rồi **Đăng nhập**. Máy chạy server cần mở firewall TCP 5000 và UDP 5001.
+rồi **Đăng nhập**.
 
 ## Demo gợi ý
 
-1. Đăng ký `an`, `binh`, `chi`, `dung`, `em` và đăng nhập trên 5 client.
+1. Đăng ký `an`, `binh`, `chi`, `dung`, `em` và đăng nhập trên các client.
 2. Chat riêng; chọn "Mọi người" để Broadcast; tạo nhóm `nhom1` gồm vài người để Multicast.
-3. Gửi emoji, ảnh, file, ghi âm 🎤 rồi bấm ⏹ để gửi.
-4. Bấm 📞 Gọi thoại (dùng tai nghe để tránh vọng) / 🎥 Video: người nhận tự nghe và thấy cửa sổ video.
+3. Gửi emoji, ảnh, file, ghi âm 🎤 rồi bấm ⏹ để gửi tin nhắn thoại.
+4. Bấm "▶ Nghe voice" để nghe trực tiếp hoặc bấm "💾 Tải về" để lưu file .wav về máy.
 5. Đóng client, mở lại → lịch sử tin nhắn load từ MySQL.
 
 ## Cấu trúc
