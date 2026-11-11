@@ -1,0 +1,16 @@
+{
+    "java.project.sourcePaths": [
+        "Chat_Client_Server/src",
+        "FTP_Server/src",
+        "Mail_Server/src",
+        "RMI/src",
+        "Web_Client/src"
+    ],
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar",
+        "Chat_Client_Server/lib/**/*.jar",
+        "FTP_Server/lib/**/*.jar",
+        "Mail_Server/lib/**/*.jar",
+        "RMI/lib/**/*.jar"
+    ]
+}
