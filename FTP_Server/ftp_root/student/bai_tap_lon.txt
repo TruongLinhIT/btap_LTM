@@ -1,3 +1,0 @@
-Bai tap lon mon Lap trinh mang (LTM)
-De tai: FTP Server voi giao thuc FTP chuan va ket noi co so du lieu MySQL.
-Ho tro ket noi tu FileZilla Client va trinh khach FTP tich hop.

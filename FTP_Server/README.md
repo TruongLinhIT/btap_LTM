@@ -5,7 +5,7 @@
 
 ### 1. Giới thiệu & Đáp ứng yêu cầu đề bài (Theo ảnh đính kèm)
 * **Số thứ tự đề tài**: `2`
-* **Lựa chọn**: `FTP Server (Khuyến khích - kk)`
+* **Lựa chọn**: `FTP Server `
 * **Giao thức FTP**: Triển khai đầy đủ và tuân thủ chặt chẽ chuẩn giao thức **RFC 959** và **RFC 3659** (USER, PASS, SYST, FEAT, PWD, CWD, CDUP, TYPE, PASV, EPSV, PORT, EPRT, LIST, NLST, MLSD, RETR, STOR, APPE, DELE, MKD, RMD, RNFR, RNTO, SIZE, MDTM, REST, NOOP, QUIT).
 * **Server có Database**: Tích hợp trực tiếp với cơ sở dữ liệu **MySQL** đang chạy trên Docker container (`ltm-mysql`, cổng `3308`, quản lý qua phpMyAdmin `http://localhost:8085`).
   - Quản lý xác thực tài khoản (`ftp_users`), băm mật khẩu bảo mật `SHA-256 + Salt`.

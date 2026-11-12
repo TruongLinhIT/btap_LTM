@@ -1,3 +1,0 @@
-Xin chao! Day la tai lieu danh cho Admin FTP Server.
-He thong ho tro day du giao thuc FTP va ket noi MySQL Database.
-Thoi gian tao: 2026-11-07

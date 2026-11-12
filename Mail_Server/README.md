@@ -5,7 +5,7 @@
 
 ### 1. Giới thiệu & Đáp ứng yêu cầu đề bài (Theo ảnh đính kèm)
 * **Số thứ tự đề bài**: `3`
-* **Lựa chọn**: `Mail Server (Khuyến khích - kk)`
+* **Lựa chọn**: `Mail Server `
 * **Giao thức POP3 và SMTP**: 
   - Triển khai **đầy đủ và tuân thủ chuẩn giao thức quốc tế** bằng **Java Socket thuần (TCP)** (không phụ thuộc bất kỳ thư viện bên thứ ba nào như JavaMail).
   - **SMTP Server (RFC 5321)**: Lắng nghe cổng `2525`, hỗ trợ đầy đủ các lệnh `HELO`, `EHLO`, `AUTH LOGIN`, `AUTH PLAIN`, `MAIL FROM`, `RCPT TO`, `DATA` (kèm dot-stuffing), `RSET`, `NOOP`, `VRFY`, `HELP`, `QUIT`.
