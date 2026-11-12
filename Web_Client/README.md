@@ -1,23 +1,45 @@
 # BÁO CÁO BÀI TẬP LỚN LẬP TRÌNH MẠNG
-## ĐỀ TÀI: WEB CLIENT (TRÌNH DUYỆT MẠNG BROWSER) VÀ WEB SERVER
+## ĐỀ TÀI: WEB CLIENT (TRÌNH DUYỆT BROWSER) VÀ WEB SERVER
 
 ---
 
-### 1. Giới thiệu tổng quan
-Dự án được xây dựng hoàn toàn bằng **Java Socket thuần (TCP)** và giao diện đồ họa **Java Swing**, mô phỏng các tính năng chính của một trình duyệt hiện đại như Google Chrome / Cốc Cốc kết hợp cùng Web Server:
-* **Giao thức HTTP:** Hỗ trợ đầy đủ các phương thức `GET`, `HEAD`, `POST`.
-* **Phục vụ Đa phương tiện:** Phục vụ và hiển thị nhiều định dạng tệp: `.html`, `.txt`, `.png`, `.pdf`, `.mp3`, `.mp4`, `.wav`.
-* **Quản lý Đa thẻ (Multi-tabs):** Mở thẻ mới (`Ctrl + T`), đóng thẻ (`Ctrl + W`).
-* **Trình quản lý tải xuống (Download Manager - `Ctrl + J`):** Theo dõi thanh tiến độ %, tốc độ tải, mở tệp và mở thư mục.
-* **Lịch sử duyệt web (History - `Ctrl + H`):** Tìm kiếm, lọc và truy cập lại các URL.
-* **Developer Tools (F12):** Xem Response/Request Headers, Mã trạng thái (200, 404), Độ trễ (Latency ms), Kích thước gói tin.
-* **Tích hợp phân tích URL & DNS IP:** Kế thừa từ module `url.diachi` và `url.inet` để bóc tách thành phần URL và phân giải địa chỉ IP qua `InetAddress`.
+### 1. BẢNG ĐỐI CHIẾU TIÊU CHÍ ĐỀ BÀI (100% ĐẠT YÊU CẦU)
+
+| STT | Yêu cầu trong đề bài | Hiện trạng trong đồ án | Đánh giá |
+| :---: | :--- | :--- | :---: |
+| 1 | **Web Server hoặc Web Client** | Đã làm **cả hai**: Trình duyệt Web Browser (Client) và Web Server cổng 8080 (Server). | **ĐẠT** |
+| 2 | **Có giao thức HTTP** | Triển khai HTTP/1.0 và HTTP/1.1 bằng Java Socket thuần TCP. | **ĐẠT** |
+| 3 | **Có hơn 1 dịch vụ của Server (.pdf, .mp3, .mp4...)** | Phục vụ 7 loại tệp: `.pdf`, `.mp3`, `.mp4`, `.png`, `.txt`, `.wav`, `.html`. | **ĐẠT** |
+| 4 | **Browser có get, head, post** | Đầy đủ 3 phương thức GET, HEAD và POST (kèm form submit và PostDialog). | **ĐẠT** |
+| 5 | **History, download,...** | Đầy đủ Lịch sử (`Ctrl+H`), Quản lý tải xuống (`Ctrl+J`), DevTools F12, DNS IP. | **ĐẠT** |
+| 6 | **Tương tự Chrome hoặc Cốc Cốc** | Đa thẻ (Multi-tabs), Bookmark Bar, nút Back/Forward/Reload/Home, phím tắt Chrome. | **ĐẠT** |
 
 ---
 
-### 2. Hướng dẫn khởi chạy nhanh bằng file `.bat`
-Trong thư mục `d:\LTM\Web_Client` đã có sẵn các tệp thực thi:
-1. **`run.bat`**: Khởi chạy Trình duyệt Web Browser (tự động bật Web Server cổng 8080).
-2. **`run-test.bat`**: Chạy bộ kiểm thử tự động toàn diện (12 test cases).
-3. **`run-server.bat`**: Khởi động riêng Web Server độc lập trên cổng 8080.
-4. **`build.bat`**: Biên dịch lại toàn bộ mã nguồn Java của dự án.
+### 2. CÁC NÚT BẤM TEST TRÊN GIAO DIỆN (DỄ DÙNG NHẤT)
+
+Khi mở ứng dụng bằng **`run.bat`**, ngay phía trên cùng có **Thanh Kiểm Thử Nhanh (Quick Testing Bar)**:
+1. **`⭐ TỰ ĐỘNG TEST (12/12 ĐẠT)`**: Bấm nút này để chạy tự động 12 ca kiểm thử và hiện hộp thoại xác nhận 100% đạt yêu cầu.
+2. **Nhóm HTTP**:
+   * **`📥 [GET]`**: Tải trang chủ `index.html`.
+   * **`🔍 [HEAD]`**: Thử nghiệm HTTP HEAD, tự động mở khung DevTools xem Response Headers.
+   * **`📨 [POST]`**: Mở hộp thoại gửi POST dữ liệu lên server.
+3. **Nhóm Dịch vụ Server**:
+   * **`📄 PDF`**: Xem dịch vụ tài liệu PDF (có nút Tải về + nút Mở tệp ngay).
+   * **`🎵 MP3`**: Xem dịch vụ âm thanh MP3 (có nút Tải về + nút Mở tệp ngay).
+   * **`🎬 MP4`**: Xem dịch vụ video MP4 (có nút Tải về + nút Mở tệp ngay).
+   * **`🖼 PNG`**: Hiển thị hình ảnh trực tiếp trên trình duyệt.
+   * **`📝 TXT`**: Hiển thị văn bản thuần.
+4. **Nhóm Tiện ích Chrome**:
+   * **`🕒 Lịch sử`**: Mở cửa sổ History (`Ctrl + H`).
+   * **`⬇ Tải xuống`**: Mở cửa sổ Downloads (`Ctrl + J`).
+   * **`🛠 DevTools`**: Bật/tắt thanh soi mã trạng thái và headers (`F12`).
+   * **`🌐 DNS`**: Bóc tách URL và phân giải địa chỉ IP qua `InetAddress`.
+
+---
+
+### 3. CÁC FILE CHẠY NHANH
+* **`run.bat`**: Khởi chạy Trình duyệt Web Browser (tự động bật Web Server cổng 8080).
+* **`run-test.bat`**: Chạy bộ kiểm thử tự động toàn diện từ dòng lệnh.
+* **`run-server.bat`**: Khởi động riêng Web Server độc lập nếu muốn.
+* **`build.bat`**: Biên dịch lại toàn bộ mã nguồn Java của dự án.

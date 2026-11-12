@@ -1,3 +1,72 @@
+2026-11-12 11:18:29	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:18:18	GET	Google Chrome - The Fast & Secure Web Browser Built to be Yours	https://www.google.com/chrome/index.html?brand=CHNY&utm_campaign=en&utm_source=en-et-youtube&utm_medium=et
+2026-11-12 11:18:12	GET	www.youtube.com	https://www.youtube.com/?app=desktop&hl=vi
+2026-11-12 11:18:01	GET	vku.udn.vn	http://vku.udn.vn
+2026-11-12 11:17:59	GET	vku.udn.vn	http://vku.udn.vn
+2026-11-12 11:17:57	GET	vku.udn.vn	http://vku.udn.vn
+2026-11-12 11:17:56	GET	sample.txt	http://localhost:8080/sample.txt
+2026-11-12 11:17:54	GET	sample.png	http://localhost:8080/sample.png
+2026-11-12 11:17:53	GET	sample.mp4	http://localhost:8080/sample.mp4
+2026-11-12 11:17:53	GET	sample.mp3	http://localhost:8080/sample.mp3
+2026-11-12 11:17:52	GET	sample.pdf	http://localhost:8080/sample.pdf
+2026-11-12 11:17:43	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:17:33	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:12:55	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:12:52	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:12:28	GET	Gmail	https://mail.google.com/mail/u/0/?tab=rm&ogbl#inbox
+2026-11-12 11:12:13	GET	vku.udn.vn	http://vku.udn.vn
+2026-11-12 11:11:29	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:11:22	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:11:20	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:11:15	HEAD	localhost	http://localhost:8080/
+2026-11-12 11:11:06	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:06:02	HEAD	vku.udn.vn	http://vku.udn.vn
+2026-11-12 11:05:58	GET	vku.udn.vn	http://vku.udn.vn
+2026-11-12 11:05:52	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:05:45	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:00:32	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:00:32	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:00:31	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:00:31	POST	Ket Qua POST - Java Web Server	http://localhost:8080/
+2026-11-12 11:00:30	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:00:30	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:00:29	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:00:28	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:00:28	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:00:28	GET	sample.mp3	http://localhost:8080/sample.mp3
+2026-11-12 11:00:28	GET	sample.png	http://localhost:8080/sample.png
+2026-11-12 11:00:27	GET	sample.txt	http://localhost:8080/sample.txt
+2026-11-12 11:00:27	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:00:25	POST	Ket Qua POST - Java Web Server	http://localhost:8080/
+2026-11-12 11:00:16	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:00:13	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 11:00:05	GET	sample.txt	http://localhost:8080/sample.txt
+2026-11-12 11:00:04	GET	sample.png	http://localhost:8080/sample.png
+2026-11-12 10:59:57	GET	sample.mp3	http://localhost:8080/sample.mp3
+2026-11-12 10:59:54	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 10:59:51	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 10:59:51	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 10:55:58	GET	sample.mp4	http://localhost:8080/sample.mp4
+2026-11-12 10:55:54	GET	sample.mp3	http://localhost:8080/sample.mp3
+2026-11-12 10:55:35	POST	Ket Qua POST - Java Web Server	http://localhost:8080/sample.png
+2026-11-12 10:55:35	POST	POST Response: 200	http://localhost:8080/sample.png
+2026-11-12 10:55:27	HEAD	sample.png	http://localhost:8080/sample.png
+2026-11-12 10:55:23	GET	sample.png	http://localhost:8080/sample.png
+2026-11-12 10:55:23	GET	sample.mp4	http://localhost:8080/sample.mp4
+2026-11-12 10:55:22	GET	sample.mp3	http://localhost:8080/sample.mp3
+2026-11-12 10:55:20	GET	sample.txt	http://localhost:8080/sample.txt
+2026-11-12 10:55:19	GET	sample.png	http://localhost:8080/sample.png
+2026-11-12 10:55:17	GET	sample.mp4	http://localhost:8080/sample.mp4
+2026-11-12 10:55:07	GET	sample.mp3	http://localhost:8080/sample.mp3
+2026-11-12 10:55:05	GET	sample.pdf	http://localhost:8080/sample.pdf
+2026-11-12 10:54:40	GET	vku.udn.vn	http://vku.udn.vn
+2026-11-12 10:54:32	GET	Hệ Thống Web Client & Web Server - Lập Trình Mạng	http://localhost:8080/
+2026-11-12 10:46:33	GET	sample.mp4	http://localhost:8080/sample.mp4
+2026-11-12 10:46:29	GET	sample.png	http://localhost:8080/sample.png
+2026-11-12 10:46:28	GET	sample.txt	http://localhost:8080/sample.txt
+2026-11-12 10:46:11	GET	Kiem Tra HTTP POST & HEAD - Java Web Server	http://localhost:8080/post_test.html
+2026-11-12 10:45:50	GET	Kiem Tra HTTP POST & HEAD - Java Web Server	http://localhost:8080/post_test.html
+2026-11-12 10:45:45	GET	Java HTTP Web Server - Trang chu	http://localhost:8080/
 2026-11-12 10:43:45	GET	Java HTTP Web Server - Trang chu	http://localhost:8080/
 2026-11-12 10:43:43	POST	Ket Qua POST - Java Web Server	http://localhost:8080/sample.png
 2026-11-12 10:43:42	GET	sample.png	http://localhost:8080/sample.png

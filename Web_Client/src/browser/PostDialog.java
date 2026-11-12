@@ -66,10 +66,8 @@ public class PostDialog extends JDialog {
         txtUrl = new JTextField(defaultUrl);
         txtUrl.setFont(new Font("Monospaced", Font.PLAIN, 13));
 
-        JButton btnSend = new JButton(" Gửi HTTP POST ");
-        btnSend.setBackground(new Color(26, 115, 232));
-        btnSend.setForeground(Color.WHITE);
-        btnSend.setFont(new Font("SansSerif", Font.BOLD, 13));
+        JButton btnSend = UiUtil.createColoredButton(" Gửi HTTP POST ", new Color(11, 87, 208), Color.WHITE, 4);
+        btnSend.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnSend.addActionListener(e -> executePost());
 
         urlRow.add(lblMethod, BorderLayout.WEST);

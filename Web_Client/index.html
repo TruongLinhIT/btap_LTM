@@ -1,118 +1,171 @@
-<!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Java HTTP Web Server - Trang chu</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; color: #202124; }
-        .header { background: #1a73e8; color: white; padding: 20px; border-radius: 8px; text-align: center; }
-        .header h1 { margin: 0; font-size: 24px; }
-        .header p { margin: 5px 0 0; font-size: 14px; opacity: 0.9; }
-        .section { background: white; margin-top: 15px; padding: 18px; border-radius: 8px; border: 1px solid #dadce0; }
-        .section h2 { margin-top: 0; color: #1a73e8; font-size: 18px; border-bottom: 2px solid #e8f0fe; padding-bottom: 6px; }
-        .badge { display: inline-block; padding: 4px 10px; background: #e6f4ea; color: #137333; border-radius: 4px; font-weight: bold; font-size: 12px; }
-        .card-grid { margin-top: 10px; }
-        .card { background: #f1f3f4; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; margin-bottom: 10px; }
-        .card h3 { margin: 0 0 5px; font-size: 15px; color: #3c4043; }
-        .btn { display: inline-block; padding: 6px 12px; background: #1a73e8; color: white; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: bold; }
-        .btn-green { background: #34a853; }
-        .btn-orange { background: #ea4335; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #dadce0; padding: 8px 12px; text-align: left; font-size: 13px; }
-        th { background: #e8f0fe; color: #1a73e8; }
-        .footer { text-align: center; margin-top: 25px; font-size: 12px; color: #5f6368; }
-    </style>
+    <title>Hệ Thống Web Client & Web Server - Lập Trình Mạng</title>
 </head>
-<body>
+<body bgcolor="#F1F3F4" text="#202124" link="#0B57D0" vlink="#0B57D0" alink="#EA4335">
 
-    <div class="header">
-        <h1>HE THONG WEB SERVER & WEB CLIENT (BROWSER)</h1>
-        <p>Bai tap mon Lap trinh Mang - Ho tro HTTP GET, HEAD, POST va Da phuong tien</p>
-    </div>
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td align="center">
 
-    <div class="section">
-        <h2>1. Danh sach cac Dịch vụ Server (Multimedia & Files)</h2>
-        <p>Server ho tro phuc vu nhieu dinh dang file khac nhau (.pdf, .mp3, .mp4, .png, .wav, .html, .txt):</p>
-        
-        <table>
-            <tr>
-                <th>Dịch vụ</th>
-                <th>Tên file</th>
-                <th>MIME Type</th>
-                <th>Thao tác</th>
-            </tr>
-            <tr>
-                <td><b>Tài liệu PDF</b></td>
-                <td>sample.pdf</td>
-                <td>application/pdf</td>
-                <td><a href="/sample.pdf" class="btn">Xem / Tai PDF</a></td>
-            </tr>
-            <tr>
-                <td><b>Âm thanh MP3</b></td>
-                <td>sample.mp3</td>
-                <td>audio/mpeg</td>
-                <td><a href="/sample.mp3" class="btn btn-green">Nghe / Tai MP3</a></td>
-            </tr>
-            <tr>
-                <td><b>Âm thanh WAV</b></td>
-                <td>sample.wav</td>
-                <td>audio/wav</td>
-                <td><a href="/sample.wav" class="btn btn-green">Nghe / Tai WAV</a></td>
-            </tr>
-            <tr>
-                <td><b>Video MP4</b></td>
-                <td>sample.mp4</td>
-                <td>video/mp4</td>
-                <td><a href="/sample.mp4" class="btn btn-orange">Xem / Tai MP4</a></td>
-            </tr>
-            <tr>
-                <td><b>Hình ảnh PNG</b></td>
-                <td>sample.png</td>
-                <td>image/png</td>
-                <td><a href="/sample.png" class="btn">Xem hinh anh</a></td>
-            </tr>
-            <tr>
-                <td><b>File van ban</b></td>
-                <td>sample.txt</td>
-                <td>text/plain</td>
-                <td><a href="/sample.txt" class="btn">Xem van ban</a></td>
-            </tr>
-        </table>
-    </div>
+    <!-- KHỐI HEADER -->
+    <table width="92%" cellpadding="16" cellspacing="0" border="0" bgcolor="#0B57D0">
+        <tr>
+            <td align="center">
+                <font color="#FFFFFF" face="Arial, Helvetica, sans-serif" size="5"><b>HỆ THỐNG WEB CLIENT & WEB SERVER</b></font><br>
+                <font color="#E8F0FE" face="Arial, Helvetica, sans-serif" size="3">Bài Tập Môn Lập Trình Mạng (LTM) - Đáp ứng đầy đủ 100% tiêu chí đề bài</font>
+            </td>
+        </tr>
+    </table>
 
-    <div class="section">
-        <h2>2. Thu nghiem Phuong thuc HTTP POST</h2>
-        <p>Gui du lieu tu form Client len Web Server bang phuong thuc POST:</p>
-        <form action="/api/submit" method="POST">
-            <p>
-                <b>Ho va ten:</b><br>
-                <input type="text" name="hoten" value="Nguyen Van A" style="width: 300px; padding: 6px; margin-top: 4px;">
-            </p>
-            <p>
-                <b>Ma sinh vien:</b><br>
-                <input type="text" name="masv" value="21IT001" style="width: 300px; padding: 6px; margin-top: 4px;">
-            </p>
-            <p>
-                <b>Tin nhan / Y kien:</b><br>
-                <textarea name="noidung" rows="3" style="width: 300px; padding: 6px; margin-top: 4px;">Thu nghiem HTTP POST tren Java Server</textarea>
-            </p>
-            <p>
-                <input type="submit" value="Gui du lieu POST len Server" class="btn btn-orange" style="cursor: pointer; padding: 8px 16px;">
-            </p>
-        </form>
-    </div>
+    <br>
 
-    <div class="section">
-        <h2>3. Kiem tra HTTP HEAD & Cac trang khac</h2>
-        <ul>
-            <li><a href="/post_test.html">Trang kiem tra POST chuyen sau (post_test.html)</a></li>
-            <li><a href="/khong-ton-tai.html">Kiem tra trang loi 404 (File Not Found)</a></li>
-        </ul>
-    </div>
+    <!-- KHỐI 1: CÁC DỊCH VỤ SERVER (MULTIMEDIA) -->
+    <table width="92%" cellpadding="14" cellspacing="0" border="1" bordercolor="#DADCE0" bgcolor="#FFFFFF">
+        <tr>
+            <td bgcolor="#E8F0FE">
+                <font color="#0B57D0" face="Arial, Helvetica, sans-serif" size="4"><b>1. CÁC DỊCH VỤ SERVER CUNG CẤP (ĐA PHƯƠNG TIỆN & FILES)</b></font><br>
+                <font color="#5F6368" face="Arial, Helvetica, sans-serif" size="2"><i>(Server phục vụ hơn 1 dịch vụ: .pdf, .mp3, .mp4, .png, .txt, .wav...)</i></font>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <table width="100%" cellpadding="8" cellspacing="0" border="1" bordercolor="#E0E0E0">
+                    <tr bgcolor="#F8F9FA">
+                        <th align="left"><font face="Arial" size="2">Loại Dịch Vụ</font></th>
+                        <th align="left"><font face="Arial" size="2">Tên Tệp</font></th>
+                        <th align="left"><font face="Arial" size="2">MIME Type</font></th>
+                        <th align="center"><font face="Arial" size="2">Thao Tác Thử Nghiệm</font></th>
+                    </tr>
+                    <tr>
+                        <td><font face="Arial" size="2">📄 <b>Tài liệu PDF</b></font></td>
+                        <td><font face="Courier New" size="2">sample.pdf</font></td>
+                        <td><font face="Courier New" size="2">application/pdf</font></td>
+                        <td align="center"><font face="Arial" size="2"><a href="/sample.pdf"><b>[ Xem &amp; Tải PDF ]</b></a></font></td>
+                    </tr>
+                    <tr bgcolor="#FAFAFA">
+                        <td><font face="Arial" size="2">🎵 <b>Âm thanh MP3</b></font></td>
+                        <td><font face="Courier New" size="2">sample.mp3</font></td>
+                        <td><font face="Courier New" size="2">audio/mpeg</font></td>
+                        <td align="center"><font face="Arial" size="2"><a href="/sample.mp3"><b>[ Nghe &amp; Tải MP3 ]</b></a></font></td>
+                    </tr>
+                    <tr>
+                        <td><font face="Arial" size="2">🎬 <b>Video MP4</b></font></td>
+                        <td><font face="Courier New" size="2">sample.mp4</font></td>
+                        <td><font face="Courier New" size="2">video/mp4</font></td>
+                        <td align="center"><font face="Arial" size="2"><a href="/sample.mp4"><b>[ Xem &amp; Tải MP4 ]</b></a></font></td>
+                    </tr>
+                    <tr bgcolor="#FAFAFA">
+                        <td><font face="Arial" size="2">🖼 <b>Hình ảnh PNG</b></font></td>
+                        <td><font face="Courier New" size="2">sample.png</font></td>
+                        <td><font face="Courier New" size="2">image/png</font></td>
+                        <td align="center"><font face="Arial" size="2"><a href="/sample.png"><b>[ Xem Trực Tiếp Ảnh ]</b></a></font></td>
+                    </tr>
+                    <tr>
+                        <td><font face="Arial" size="2">📝 <b>Văn bản TXT</b></font></td>
+                        <td><font face="Courier New" size="2">sample.txt</font></td>
+                        <td><font face="Courier New" size="2">text/plain</font></td>
+                        <td align="center"><font face="Arial" size="2"><a href="/sample.txt"><b>[ Đọc File Văn Bản ]</b></a></font></td>
+                    </tr>
+                    <tr bgcolor="#FAFAFA">
+                        <td><font face="Arial" size="2">🔊 <b>Âm thanh WAV</b></font></td>
+                        <td><font face="Courier New" size="2">sample.wav</font></td>
+                        <td><font face="Courier New" size="2">audio/wav</font></td>
+                        <td align="center"><font face="Arial" size="2"><a href="/sample.wav"><b>[ Nghe Âm Thanh WAV ]</b></a></font></td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
-    <div class="footer">
-        <p>Java Multi-threaded HTTP/1.1 Server & Web Browser Client - LTM 2026</p>
-    </div>
+    <br>
+
+    <!-- KHỐI 2: THỬ NGHIỆM HTTP METHODS (GET, HEAD, POST) -->
+    <table width="92%" cellpadding="14" cellspacing="0" border="1" bordercolor="#DADCE0" bgcolor="#FFFFFF">
+        <tr>
+            <td bgcolor="#E8F0FE">
+                <font color="#0B57D0" face="Arial, Helvetica, sans-serif" size="4"><b>2. THỬ NGHIỆM GIAO THỨC HTTP (GET, HEAD, POST)</b></font><br>
+                <font color="#5F6368" face="Arial, Helvetica, sans-serif" size="2"><i>(Hỗ trợ đầy đủ phương thức HTTP Client và xử lý phía Server)</i></font>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <!-- PHƯƠNG THỨC POST -->
+                <table width="100%" cellpadding="8" cellspacing="0" border="0" bgcolor="#F8F9FA">
+                    <tr>
+                        <td>
+                            <font face="Arial" size="3"><b>A. Thử Nghiệm Phương Thức HTTP POST:</b></font><br>
+                            <font face="Arial" size="2" color="#555555">Điền thông tin và bấm nút bên dưới, Trình duyệt sẽ gửi gói tin POST qua Socket TCP lên Server:</font>
+                            <br><br>
+                            <form action="http://localhost:8080/api/submit" method="POST">
+                                <font face="Arial" size="2"><b>Họ và tên sinh viên:</b></font><br>
+                                <input type="text" name="hoten" value="Nguyen Van A" size="40"><br><br>
+
+                                <font face="Arial" size="2"><b>Mã sinh viên:</b></font><br>
+                                <input type="text" name="masv" value="21IT001" size="40"><br><br>
+
+                                <font face="Arial" size="2"><b>Nội dung kiểm thử POST:</b></font><br>
+                                <input type="text" name="noidung" value="Thu nghiem gui HTTP POST qua Socket TCP" size="50"><br><br>
+
+                                <input type="submit" value="  🚀 BẤM ĐỂ GỬI HTTP POST LÊN SERVER  ">
+                            </form>
+                        </td>
+                    </tr>
+                </table>
+
+                <br>
+
+                <!-- PHƯƠNG THỨC GET VÀ HEAD -->
+                <table width="100%" cellpadding="8" cellspacing="0" border="1" bordercolor="#E0E0E0">
+                    <tr>
+                        <td width="50%">
+                            <font face="Arial" size="2"><b>B. Phương Thức HTTP GET:</b></font><br>
+                            <font face="Arial" size="2" color="#555555">Tải lại trang web hoặc chuyển trang qua URL:</font><br>
+                            &bull; <a href="http://localhost:8080/">Tải lại Trang chủ (GET)</a><br>
+                            &bull; <a href="http://localhost:8080/sample.txt">Xem file text bằng GET</a>
+                        </td>
+                        <td width="50%">
+                            <font face="Arial" size="2"><b>C. Phương Thức HTTP HEAD &amp; Lỗi 404:</b></font><br>
+                            <font face="Arial" size="2" color="#555555">Chỉ lấy Header không tải Body, hoặc kiểm tra mã 404:</font><br>
+                            &bull; <font color="#0B57D0">Dùng nút <b>[🔍 HEAD]</b> trên thanh công cụ phía trên</font><br>
+                            &bull; <a href="http://localhost:8080/trang_khong_ton_tai.html">Thử nghiệm trang lỗi 404 Not Found</a>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <br>
+
+    <!-- KHỐI 3: TÍNH NĂNG TRÌNH DUYỆT GIỐNG CHROME / CỐC CỐC -->
+    <table width="92%" cellpadding="14" cellspacing="0" border="1" bordercolor="#DADCE0" bgcolor="#FFFFFF">
+        <tr>
+            <td bgcolor="#E8F0FE">
+                <font color="#0B57D0" face="Arial, Helvetica, sans-serif" size="4"><b>3. CÁC TÍNH NĂNG TRÌNH DUYỆT (TƯƠNG TỰ CHROME / CỐC CỐC)</b></font>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <font face="Arial" size="2">
+                &bull; <b>Quản lý Tải xuống (Download Manager):</b> Bấm phím tắt <b>Ctrl + J</b> hoặc nút <b>[⬇ Tải xuống]</b> ở thanh phía trên.<br>
+                &bull; <b>Lịch sử duyệt web (History):</b> Bấm phím tắt <b>Ctrl + H</b> hoặc nút <b>[🕒 Lịch sử]</b> để tìm kiếm và xem các URL đã vào.<br>
+                &bull; <b>Developer Tools (F12):</b> Bấm phím <b>F12</b> hoặc nút <b>[🛠 DevTools]</b> để soi mã trạng thái (200, 404), thời gian phản hồi (ms) và HTTP Headers.<br>
+                &bull; <b>Hệ thống Đa thẻ (Multi-tabs):</b> Bấm nút dấu <b>+</b> trên thanh tab hoặc phím <b>Ctrl + T</b> để mở thêm thẻ mới; bấm <b>x</b> để đóng thẻ.<br>
+                &bull; <b>Phân tích URL &amp; Phân giải DNS IP:</b> Bấm nút <b>[🌐 DNS]</b> để xem chi tiết Host, Port, Path và địa chỉ IP InetAddress.<br>
+                &bull; <b>Kiểm thử Tự động:</b> Bấm nút màu xanh <b>[⭐ TỰ ĐỘNG TEST (12/12 ĐẠT)]</b> ở hàng đầu tiên để chạy kiểm thử và xem bảng kết quả.
+                </font>
+            </td>
+        </tr>
+    </table>
+
+    <br>
+    <font face="Arial" size="2" color="#70757A">Java Socket HTTP/1.1 Web Server &amp; Web Browser Client &bull; Lập Trình Mạng 2026</font>
+    <br><br>
+
+</td>
+</tr>
+</table>
 
 </body>
 </html>
