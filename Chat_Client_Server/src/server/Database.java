@@ -27,9 +27,37 @@ public class Database {
         return DriverManager.getConnection(url, user, pass);
     }
 
-    /** Tạo bảng nếu chưa có. */
+    private Connection openOrCreateDb() throws SQLException {
+        try {
+            return conn();
+        } catch (SQLException e) {
+            if (e.getErrorCode() != 1049) throw e; // 1049 = Unknown database
+            createDatabaseIfNeeded();
+            return conn();
+        }
+    }
+
+    private void createDatabaseIfNeeded() throws SQLException {
+        int schemeEnd = url.indexOf("://");
+        if (schemeEnd == -1) return;
+        int pathStart = url.indexOf('/', schemeEnd + 3);
+        if (pathStart == -1) return;
+        int queryStart = url.indexOf('?', pathStart);
+        String dbName = (queryStart == -1 ? url.substring(pathStart + 1) : url.substring(pathStart + 1, queryStart)).trim();
+        if (dbName.isEmpty()) return;
+
+        String serverUrl = url.substring(0, pathStart + 1) + (queryStart == -1 ? "" : url.substring(queryStart));
+        String safeDb = dbName.replace("`", "``");
+        try (Connection c = DriverManager.getConnection(serverUrl, user, pass);
+             Statement s = c.createStatement()) {
+            s.execute("CREATE DATABASE IF NOT EXISTS `" + safeDb
+                    + "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        }
+    }
+
+    /** Tạo database (nếu chưa có) và các bảng nếu chưa có. */
     public void init() throws SQLException {
-        try (Connection c = conn(); Statement s = c.createStatement()) {
+        try (Connection c = openOrCreateDb(); Statement s = c.createStatement()) {
             s.execute("CREATE TABLE IF NOT EXISTS users (" +
                     "id INT AUTO_INCREMENT PRIMARY KEY," +
                     "username VARCHAR(50) NOT NULL UNIQUE," +

@@ -30,7 +30,7 @@ public class ChatServer {
     ChatServer() throws IOException {
         db = new Database(
                 env("DB_URL", "jdbc:mysql://localhost:3308/chatdb?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Ho_Chi_Minh"),
-                env("DB_USER", "chat"), env("DB_PASS", "chat123"));
+                env("DB_USER", "root"), env("DB_PASS", "root123"));
         udp = new UdpRelay(this, UDP_PORT);
         Files.createDirectories(uploadDir);
     }
