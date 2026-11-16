@@ -8,10 +8,14 @@ public interface IBankService extends Remote {
     void logout(String username) throws RemoteException;
     double getBalance(String username) throws RemoteException;
     String transfer(String fromUser, String toUser, double amount) throws RemoteException;
+    Account getAccountInfo(String username) throws RemoteException;
+    List<Account> getAllUserProfiles() throws RemoteException;
+    String updateUserInfo(String username, String fullName, String email, String phone, String newPassword) throws RemoteException;
 
     // --- CÁC HÀM ĐỒNG BỘ 2 CHIỀU GIỮA 2 SERVER ---
     void syncLockStatus(String username, boolean isLocked) throws RemoteException;
     void syncBalance(String fromUser, double newFromBalance, String toUser, double newToBalance) throws RemoteException;
+    void syncUserInfo(String username, String fullName, String email, String phone, String password) throws RemoteException;
 
     // Đồng bộ toàn bộ danh sách tài khoản khi phát hiện CSDL có thay đổi
     void syncDatabase(List<Account> accounts) throws RemoteException;

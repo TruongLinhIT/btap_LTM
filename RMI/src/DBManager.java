@@ -49,20 +49,28 @@ public class DBManager {
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
             
-            // Tạo bảng accounts đơn giản gồm 4 cột cơ bản
+            // Tạo bảng accounts gồm thông tin tài khoản & thông tin cá nhân
             String sql = "CREATE TABLE IF NOT EXISTS accounts ("
                     + "username VARCHAR(50) PRIMARY KEY, "
                     + "password VARCHAR(255) NOT NULL, "
                     + "balance DOUBLE NOT NULL DEFAULT 0, "
-                    + "is_locked BOOLEAN NOT NULL DEFAULT FALSE"
+                    + "is_locked BOOLEAN NOT NULL DEFAULT FALSE, "
+                    + "full_name VARCHAR(100) NOT NULL DEFAULT '', "
+                    + "email VARCHAR(100) NOT NULL DEFAULT '', "
+                    + "phone VARCHAR(20) NOT NULL DEFAULT ''"
                     + ");";
             stmt.executeUpdate(sql);
 
+            // Đảm bảo các bảng cũ đã tồn tại được bổ sung cột mới
+            ensureColumn(conn, "full_name", "VARCHAR(100) NOT NULL DEFAULT ''");
+            ensureColumn(conn, "email", "VARCHAR(100) NOT NULL DEFAULT ''");
+            ensureColumn(conn, "phone", "VARCHAR(20) NOT NULL DEFAULT ''");
+
             // Nạp dữ liệu mẫu ban đầu
-            String insertSample = "INSERT INTO accounts (username, password, balance, is_locked) VALUES "
-                    + "('user1', '123', 5000000.0, FALSE), "
-                    + "('user2', '123', 3000000.0, FALSE), "
-                    + "('user3', '123', 10000000.0, FALSE) "
+            String insertSample = "INSERT INTO accounts (username, password, balance, is_locked, full_name, email, phone) VALUES "
+                    + "('user1', '123', 5000000.0, FALSE, 'Nguyễn Văn A', 'user1@bank.vn', '0901000001'), "
+                    + "('user2', '123', 3000000.0, FALSE, 'Trần Thị B', 'user2@bank.vn', '0901000002'), "
+                    + "('user3', '123', 10000000.0, FALSE, 'Lê Văn C', 'user3@bank.vn', '0901000003') "
                     + "ON DUPLICATE KEY UPDATE username = username;";
             stmt.executeUpdate(insertSample);
 
@@ -71,6 +79,29 @@ public class DBManager {
             System.err.println("❌ Lỗi CSDL: " + e.getMessage());
             return false;
         }
+    }
+
+    private void ensureColumn(Connection conn, String colName, String colDef) throws SQLException {
+        DatabaseMetaData meta = conn.getMetaData();
+        try (ResultSet rs = meta.getColumns(conn.getCatalog(), null, "accounts", colName)) {
+            if (!rs.next()) {
+                try (Statement st = conn.createStatement()) {
+                    st.executeUpdate("ALTER TABLE accounts ADD COLUMN " + colName + " " + colDef);
+                }
+            }
+        }
+    }
+
+    private Account mapAccount(ResultSet rs) throws SQLException {
+        return new Account(
+                rs.getString("username"),
+                rs.getString("password"),
+                rs.getDouble("balance"),
+                rs.getBoolean("is_locked"),
+                rs.getString("full_name"),
+                rs.getString("email"),
+                rs.getString("phone")
+        );
     }
 
     // Mở khóa các tài khoản khi bật Server
@@ -91,12 +122,7 @@ public class DBManager {
             ps.setString(1, username);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return new Account(
-                        rs.getString("username"),
-                        rs.getString("password"),
-                        rs.getDouble("balance"),
-                        rs.getBoolean("is_locked")
-                    );
+                    return mapAccount(rs);
                 }
             }
         } catch (SQLException e) {
@@ -114,12 +140,7 @@ public class DBManager {
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                list.add(new Account(
-                    rs.getString("username"),
-                    rs.getString("password"),
-                    rs.getDouble("balance"),
-                    rs.getBoolean("is_locked")
-                ));
+                list.add(mapAccount(rs));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -129,20 +150,43 @@ public class DBManager {
 
     // Lưu hoặc cập nhật 1 tài khoản vào CSDL (dùng khi đồng bộ từ Server kia)
     public void saveOrUpdateAccount(Account acc) {
-        String sql = "INSERT INTO accounts (username, password, balance, is_locked) VALUES (?, ?, ?, ?) "
+        String sql = "INSERT INTO accounts (username, password, balance, is_locked, full_name, email, phone) VALUES (?, ?, ?, ?, ?, ?, ?) "
                    + "ON DUPLICATE KEY UPDATE "
                    + "password = VALUES(password), "
                    + "balance = VALUES(balance), "
-                   + "is_locked = VALUES(is_locked)";
+                   + "is_locked = VALUES(is_locked), "
+                   + "full_name = VALUES(full_name), "
+                   + "email = VALUES(email), "
+                   + "phone = VALUES(phone)";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, acc.getUsername());
             ps.setString(2, acc.getPassword());
             ps.setDouble(3, acc.getBalance());
             ps.setBoolean(4, acc.isLocked());
+            ps.setString(5, acc.getFullName());
+            ps.setString(6, acc.getEmail());
+            ps.setString(7, acc.getPhone());
             ps.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    // Cập nhật thông tin cá nhân của user
+    public boolean updateUserInfo(String username, String fullName, String email, String phone, String password) {
+        String sql = "UPDATE accounts SET full_name = ?, email = ?, phone = ?, password = ? WHERE username = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, fullName);
+            ps.setString(2, email);
+            ps.setString(3, phone);
+            ps.setString(4, password);
+            ps.setString(5, username);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
         }
     }
 

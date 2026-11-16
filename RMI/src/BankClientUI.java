@@ -1,13 +1,21 @@
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.rmi.Naming;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BankClientUI extends JFrame {
     private CardLayout cardLayout;
@@ -16,7 +24,11 @@ public class BankClientUI extends JFrame {
     // RMI & Session
     private IBankService bankService;
     private String currentUsername = null;
+    private Account currentAccount = null;
     private static final int DEFAULT_RMI_PORT = 1099;
+    private Timer autoRefreshTimer;
+    private final AtomicBoolean isRefreshing = new AtomicBoolean(false);
+    private final Map<String, Account> lastProfiles = new HashMap<>();
 
     // Login Components
     private JTextField txtHost;
@@ -29,19 +41,28 @@ public class BankClientUI extends JFrame {
     private JLabel lblWelcome;
     private JLabel lblServerBadge;
     private JLabel lblBalance;
+    private JLabel lblProfileName;
+    private JLabel lblProfileEmail;
+    private JLabel lblProfilePhone;
     private JTextField txtToUser;
     private JTextField txtAmount;
     private JTextArea txtLogs;
     private JButton btnTransfer;
     private JButton btnRefresh;
+    private JButton btnEditProfile;
     private JButton btnLogout;
+    private DefaultTableModel usersTableModel;
+    private JTable tblUsers;
 
     public BankClientUI() {
         setTitle("RMI Banking Application - Dual Server Sync");
-        setSize(700, 560);
-        setMinimumSize(new Dimension(650, 500));
+        setSize(860, 700);
+        setMinimumSize(new Dimension(780, 620));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+
+        // Timer tự động đồng bộ thông tin user & số dư mỗi 2.5 giây
+        autoRefreshTimer = new Timer(2500, e -> refreshDashboardData(false));
 
         // Xử lý tắt ứng dụng -> Tự động đăng xuất mở khóa tài khoản
         addWindowListener(new WindowAdapter() {
@@ -214,7 +235,7 @@ public class BankClientUI extends JFrame {
         panel.setBackground(new Color(245, 247, 250));
         panel.setBorder(new EmptyBorder(15, 20, 15, 20));
 
-        // Top Bar: Xin chào + Server Badge + Đăng xuất
+        // Top Bar: Xin chào + Server Badge + Sửa thông tin + Đăng xuất
         JPanel topBar = new JPanel(new BorderLayout());
         topBar.setBackground(Color.WHITE);
         topBar.setBorder(BorderFactory.createCompoundBorder(
@@ -238,44 +259,74 @@ public class BankClientUI extends JFrame {
         userBox.add(lblWelcome);
         userBox.add(lblServerBadge);
 
+        JPanel rightBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        rightBox.setOpaque(false);
+
+        btnEditProfile = createCustomButton("Sửa thông tin",
+                new Color(24, 119, 242), new Color(13, 100, 215), Color.WHITE, 6);
+        btnEditProfile.setPreferredSize(new Dimension(125, 34));
+        btnEditProfile.addActionListener(e -> showEditProfileDialog());
+
         // Nút Đăng xuất: NỀN ĐỎ NỔI BẬT, CHỮ TRẮNG RÕ RÀNG
         btnLogout = createCustomButton("Đăng xuất", 
                 new Color(220, 53, 69), new Color(195, 30, 45), Color.WHITE, 6);
         btnLogout.setPreferredSize(new Dimension(105, 34));
         btnLogout.addActionListener(e -> executeLogout());
 
+        rightBox.add(btnEditProfile);
+        rightBox.add(btnLogout);
+
         topBar.add(userBox, BorderLayout.WEST);
-        topBar.add(btnLogout, BorderLayout.EAST);
+        topBar.add(rightBox, BorderLayout.EAST);
         panel.add(topBar, BorderLayout.NORTH);
 
-        // Center: Số dư + Chuyển tiền
+        // Center Wrapper: Hàng trên (Thông tin/Số dư + Chuyển tiền) & Hàng dưới (Danh sách User đồng bộ)
+        JPanel centerWrapper = new JPanel(new BorderLayout(0, 10));
+        centerWrapper.setOpaque(false);
+
+        // Center top: Số dư + Chuyển tiền
         JPanel centerPanel = new JPanel(new GridLayout(1, 2, 15, 0));
         centerPanel.setOpaque(false);
 
         // Cột 1: Thông tin tài khoản & Số dư
-        JPanel balanceCard = new JPanel(new BorderLayout(10, 15));
+        JPanel balanceCard = new JPanel(new BorderLayout(10, 10));
         balanceCard.setBackground(Color.WHITE);
         balanceCard.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(220, 224, 230), 1),
-                new EmptyBorder(20, 20, 20, 20)
+                new EmptyBorder(15, 20, 15, 20)
         ));
 
-        JLabel lblBalTitle = new JLabel("SỐ DƯ KHẢ DỤNG");
+        JLabel lblBalTitle = new JLabel("THÔNG TIN CÁ NHÂN & SỐ DƯ");
         lblBalTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblBalTitle.setForeground(new Color(108, 117, 125));
 
+        JPanel profileInfoBox = new JPanel(new GridLayout(4, 1, 0, 4));
+        profileInfoBox.setOpaque(false);
+
+        lblProfileName = new JLabel("Họ tên: -");
+        lblProfileName.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblProfileEmail = new JLabel("Email: -");
+        lblProfileEmail.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblProfilePhone = new JLabel("SĐT: -");
+        lblProfilePhone.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+
         lblBalance = new JLabel("0 VNĐ", SwingConstants.CENTER);
-        lblBalance.setFont(new Font("Segoe UI", Font.BOLD, 26));
+        lblBalance.setFont(new Font("Segoe UI", Font.BOLD, 24));
         lblBalance.setForeground(new Color(40, 167, 69));
 
-        // Nút Làm mới số dư (Nền xám nhạt hiện đại, chữ đậm màu tối)
-        btnRefresh = createCustomButton("Làm mới số dư", 
+        profileInfoBox.add(lblProfileName);
+        profileInfoBox.add(lblProfileEmail);
+        profileInfoBox.add(lblProfilePhone);
+        profileInfoBox.add(lblBalance);
+
+        // Nút Làm mới dữ liệu (Nền xám nhạt hiện đại, chữ đậm màu tối)
+        btnRefresh = createCustomButton("Làm mới dữ liệu", 
                 new Color(235, 238, 242), new Color(220, 225, 230), new Color(33, 37, 41), 6);
-        btnRefresh.setPreferredSize(new Dimension(200, 36));
-        btnRefresh.addActionListener(e -> refreshBalance());
+        btnRefresh.setPreferredSize(new Dimension(200, 34));
+        btnRefresh.addActionListener(e -> refreshDashboardData(true));
 
         balanceCard.add(lblBalTitle, BorderLayout.NORTH);
-        balanceCard.add(lblBalance, BorderLayout.CENTER);
+        balanceCard.add(profileInfoBox, BorderLayout.CENTER);
         balanceCard.add(btnRefresh, BorderLayout.SOUTH);
         centerPanel.add(balanceCard);
 
@@ -331,7 +382,60 @@ public class BankClientUI extends JFrame {
         transferCard.add(btnTransfer, tGbc);
 
         centerPanel.add(transferCard);
-        panel.add(centerPanel, BorderLayout.CENTER);
+        centerWrapper.add(centerPanel, BorderLayout.NORTH);
+
+        // Center bottom: Bảng thông tin khách hàng đồng bộ theo thời gian thực
+        JPanel usersCard = new JPanel(new BorderLayout(5, 6));
+        usersCard.setBackground(Color.WHITE);
+        usersCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 224, 230), 1),
+                new EmptyBorder(10, 15, 10, 15)
+        ));
+
+        JPanel usersHeader = new JPanel(new BorderLayout());
+        usersHeader.setOpaque(false);
+        JLabel lblUsersTitle = new JLabel("DANH BẠ KHÁCH HÀNG (TỰ ĐỘNG ĐỒNG BỘ GIỮA CÁC USER & SERVER)");
+        lblUsersTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblUsersTitle.setForeground(new Color(108, 117, 125));
+        JLabel lblUsersHint = new JLabel("Click vào dòng để chọn người nhận");
+        lblUsersHint.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+        lblUsersHint.setForeground(new Color(130, 138, 145));
+        usersHeader.add(lblUsersTitle, BorderLayout.WEST);
+        usersHeader.add(lblUsersHint, BorderLayout.EAST);
+
+        String[] cols = {"Tài khoản", "Họ và tên", "Email", "Số điện thoại", "Trạng thái"};
+        usersTableModel = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        tblUsers = new JTable(usersTableModel);
+        tblUsers.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        tblUsers.setRowHeight(24);
+        tblUsers.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tblUsers.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tblUsers.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = tblUsers.getSelectedRow();
+                if (row >= 0) {
+                    String selectedUser = String.valueOf(usersTableModel.getValueAt(row, 0));
+                    if (!selectedUser.equals(currentUsername)) {
+                        txtToUser.setText(selectedUser);
+                    }
+                }
+            }
+        });
+
+        JScrollPane scrollUsers = new JScrollPane(tblUsers);
+        scrollUsers.setPreferredSize(new Dimension(600, 125));
+
+        usersCard.add(usersHeader, BorderLayout.NORTH);
+        usersCard.add(scrollUsers, BorderLayout.CENTER);
+        centerWrapper.add(usersCard, BorderLayout.CENTER);
+
+        panel.add(centerWrapper, BorderLayout.CENTER);
 
         // Bottom: Hoạt động / Nhật ký (Activity Logs)
         JPanel logCard = new JPanel(new BorderLayout(5, 5));
@@ -340,7 +444,7 @@ public class BankClientUI extends JFrame {
                 BorderFactory.createLineBorder(new Color(220, 224, 230), 1),
                 new EmptyBorder(10, 15, 10, 15)
         ));
-        logCard.setPreferredSize(new Dimension(600, 150));
+        logCard.setPreferredSize(new Dimension(600, 130));
 
         JLabel lblLogTitle = new JLabel("Nhật ký giao dịch & Đồng bộ RMI:");
         lblLogTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -360,7 +464,7 @@ public class BankClientUI extends JFrame {
     }
 
     // =========================================================================
-    // XỬ LÝ NGHIỆP VỤ (LOGIN, LOGOUT, CHUYỂN TIỀN, LÀM MỚI SỐ DƯ)
+    // XỬ LÝ NGHIỆP VỤ (LOGIN, LOGOUT, CHUYỂN TIỀN, SỬA THÔNG TIN & ĐỒNG BỘ)
     // =========================================================================
 
     private void executeLogin() {
@@ -392,13 +496,16 @@ public class BankClientUI extends JFrame {
                     if ("OK".equals(result)) {
                         bankService = service;
                         currentUsername = username;
+                        currentAccount = null;
+                        lastProfiles.clear();
 
                         lblWelcome.setText("Xin chào, " + username);
                         lblServerBadge.setText("  Server: " + finalHost + "  ");
                         txtLogs.setText("");
                         addLog("Đăng nhập thành công vào Server (" + finalHost + ")");
 
-                        refreshBalance();
+                        refreshDashboardData(false);
+                        autoRefreshTimer.start();
                         cardLayout.show(mainPanel, "DASHBOARD");
                         lblLoginStatus.setText(" ");
                     } else if ("DANG_DANG_NHAP_NOI_KHAC".equals(result)) {
@@ -430,20 +537,193 @@ public class BankClientUI extends JFrame {
         }).start();
     }
 
-    private void refreshBalance() {
+    private void refreshDashboardData(boolean showManualLog) {
         if (bankService == null || currentUsername == null) return;
+        if (!isRefreshing.compareAndSet(false, true)) return;
+
+        final IBankService serviceSnapshot = bankService;
+        final String usernameSnapshot = currentUsername;
 
         new Thread(() -> {
             try {
-                double bal = bankService.getBalance(currentUsername);
+                List<Account> profiles = serviceSnapshot.getAllUserProfiles();
                 SwingUtilities.invokeLater(() -> {
-                    NumberFormat nf = NumberFormat.getInstance(new Locale("vi", "VN"));
-                    lblBalance.setText(nf.format(bal) + " VNĐ");
+                    try {
+                        if (currentUsername == null || !currentUsername.equals(usernameSnapshot)) return;
+
+                        boolean hadPrevious = !lastProfiles.isEmpty();
+                        NumberFormat nf = NumberFormat.getInstance(new Locale("vi", "VN"));
+
+                        int selectedRow = tblUsers.getSelectedRow();
+                        String selectedUser = (selectedRow >= 0 && selectedRow < usersTableModel.getRowCount())
+                                ? String.valueOf(usersTableModel.getValueAt(selectedRow, 0))
+                                : null;
+
+                        usersTableModel.setRowCount(0);
+                        int rowToSelect = -1;
+
+                        for (int i = 0; i < profiles.size(); i++) {
+                            Account acc = profiles.get(i);
+                            Account prev = lastProfiles.get(acc.getUsername());
+
+                            if (hadPrevious && prev != null) {
+                                boolean infoChanged = !Objects.equals(prev.getFullName(), acc.getFullName())
+                                        || !Objects.equals(prev.getEmail(), acc.getEmail())
+                                        || !Objects.equals(prev.getPhone(), acc.getPhone());
+                                if (infoChanged) {
+                                    addLog("[Đồng bộ] Thông tin user '" + acc.getUsername() + "' đã cập nhật -> "
+                                            + acc.getFullName() + " | " + acc.getEmail() + " | " + acc.getPhone());
+                                }
+                                if (acc.getUsername().equals(currentUsername)
+                                        && Double.compare(prev.getBalance(), acc.getBalance()) != 0) {
+                                    addLog("[Đồng bộ] Số dư tài khoản cập nhật: " + nf.format(acc.getBalance()) + " VNĐ");
+                                }
+                            }
+
+                            if (acc.getUsername().equals(currentUsername)) {
+                                currentAccount = acc;
+                                String displayName = acc.getFullName().isEmpty()
+                                        ? acc.getUsername()
+                                        : acc.getFullName() + " (" + acc.getUsername() + ")";
+                                lblWelcome.setText("Xin chào, " + displayName);
+                                lblProfileName.setText("Họ tên: " + (acc.getFullName().isEmpty() ? "(Chưa cập nhật)" : acc.getFullName()));
+                                lblProfileEmail.setText("Email: " + (acc.getEmail().isEmpty() ? "(Chưa cập nhật)" : acc.getEmail()));
+                                lblProfilePhone.setText("SĐT: " + (acc.getPhone().isEmpty() ? "(Chưa cập nhật)" : acc.getPhone()));
+                                lblBalance.setText(nf.format(acc.getBalance()) + " VNĐ");
+                            }
+
+                            usersTableModel.addRow(new Object[]{
+                                    acc.getUsername(),
+                                    acc.getFullName().isEmpty() ? "-" : acc.getFullName(),
+                                    acc.getEmail().isEmpty() ? "-" : acc.getEmail(),
+                                    acc.getPhone().isEmpty() ? "-" : acc.getPhone(),
+                                    acc.isLocked() ? "Đang online" : "Offline"
+                            });
+
+                            if (acc.getUsername().equals(selectedUser)) {
+                                rowToSelect = i;
+                            }
+                        }
+
+                        if (rowToSelect >= 0) {
+                            tblUsers.setRowSelectionInterval(rowToSelect, rowToSelect);
+                        }
+
+                        lastProfiles.clear();
+                        for (Account acc : profiles) {
+                            lastProfiles.put(acc.getUsername(), acc);
+                        }
+
+                        if (showManualLog) {
+                            addLog("Đã làm mới dữ liệu & đồng bộ danh bạ khách hàng.");
+                        }
+                    } finally {
+                        isRefreshing.set(false);
+                    }
                 });
             } catch (Exception ex) {
+                isRefreshing.set(false);
                 ex.printStackTrace();
             }
         }).start();
+    }
+
+    private void showEditProfileDialog() {
+        if (bankService == null || currentUsername == null) return;
+
+        JDialog dialog = new JDialog(this, "Chỉnh sửa thông tin tài khoản (" + currentUsername + ")", true);
+        dialog.setSize(430, 340);
+        dialog.setLocationRelativeTo(this);
+        dialog.setResizable(false);
+
+        JPanel content = new JPanel(new BorderLayout(10, 12));
+        content.setBorder(new EmptyBorder(16, 20, 16, 20));
+        content.setBackground(Color.WHITE);
+
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(6, 5, 6, 5);
+
+        JTextField txtUserReadOnly = new JTextField(currentUsername, 20);
+        txtUserReadOnly.setEnabled(false);
+
+        JTextField txtFullName = new JTextField(currentAccount != null ? currentAccount.getFullName() : "", 20);
+        JTextField txtEmail = new JTextField(currentAccount != null ? currentAccount.getEmail() : "", 20);
+        JTextField txtPhone = new JTextField(currentAccount != null ? currentAccount.getPhone() : "", 20);
+        JPasswordField txtNewPass = new JPasswordField(20);
+
+        String[] labels = {"Tài khoản:", "Họ và tên (*):", "Email:", "Số điện thoại:", "Mật khẩu mới:"};
+        JComponent[] fields = {txtUserReadOnly, txtFullName, txtEmail, txtPhone, txtNewPass};
+
+        for (int i = 0; i < labels.length; i++) {
+            gbc.gridx = 0; gbc.gridy = i; gbc.weightx = 0;
+            JLabel lbl = new JLabel(labels[i]);
+            lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            form.add(lbl, gbc);
+
+            gbc.gridx = 1; gbc.gridy = i; gbc.weightx = 1;
+            fields[i].setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            form.add(fields[i], gbc);
+        }
+
+        gbc.gridx = 1; gbc.gridy = labels.length;
+        JLabel lblNote = new JLabel("Để trống mật khẩu mới nếu không muốn đổi.");
+        lblNote.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+        lblNote.setForeground(new Color(108, 117, 125));
+        form.add(lblNote, gbc);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        btnPanel.setOpaque(false);
+
+        JButton btnCancel = createCustomButton("Hủy",
+                new Color(235, 238, 242), new Color(220, 225, 230), new Color(33, 37, 41), 6);
+        btnCancel.setPreferredSize(new Dimension(85, 34));
+        btnCancel.addActionListener(e -> dialog.dispose());
+
+        JButton btnSave = createCustomButton("Lưu & Đồng bộ",
+                new Color(24, 119, 242), new Color(13, 100, 215), Color.WHITE, 6);
+        btnSave.setPreferredSize(new Dimension(130, 34));
+        btnSave.addActionListener(e -> {
+            String fullName = txtFullName.getText().trim();
+            String email = txtEmail.getText().trim();
+            String phone = txtPhone.getText().trim();
+            String newPass = new String(txtNewPass.getPassword()).trim();
+
+            btnSave.setEnabled(false);
+            new Thread(() -> {
+                try {
+                    String res = bankService.updateUserInfo(currentUsername, fullName, email, phone, newPass);
+                    SwingUtilities.invokeLater(() -> {
+                        btnSave.setEnabled(true);
+                        if ("OK".equals(res)) {
+                            dialog.dispose();
+                            refreshDashboardData(false);
+                            JOptionPane.showMessageDialog(this,
+                                    "✅ Cập nhật thông tin thành công!\n"
+                                            + "Dữ liệu đã được đồng bộ sang cả 2 Server và các User.",
+                                    "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                        } else {
+                            JOptionPane.showMessageDialog(dialog, res, "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
+                        }
+                    });
+                } catch (Exception ex) {
+                    SwingUtilities.invokeLater(() -> {
+                        btnSave.setEnabled(true);
+                        JOptionPane.showMessageDialog(dialog, "Lỗi RMI: " + ex.getMessage(), "Lỗi hệ thống", JOptionPane.ERROR_MESSAGE);
+                    });
+                }
+            }).start();
+        });
+
+        btnPanel.add(btnCancel);
+        btnPanel.add(btnSave);
+
+        content.add(form, BorderLayout.CENTER);
+        content.add(btnPanel, BorderLayout.SOUTH);
+        dialog.setContentPane(content);
+        dialog.setVisible(true);
     }
 
     private void executeTransfer() {
@@ -483,7 +763,7 @@ public class BankClientUI extends JFrame {
                         addLog("Chuyển " + formattedAmt + " tới '" + toUser + "' thành công (Đồng bộ Dual-Server).");
                         txtToUser.setText("");
                         txtAmount.setText("");
-                        refreshBalance();
+                        refreshDashboardData(false);
                     } else {
                         JOptionPane.showMessageDialog(this, result, "Giao dịch thất bại", JOptionPane.WARNING_MESSAGE);
                         addLog("Chuyển tiền thất bại: " + result);
@@ -499,6 +779,7 @@ public class BankClientUI extends JFrame {
     }
 
     private void executeLogout() {
+        autoRefreshTimer.stop();
         if (bankService != null && currentUsername != null) {
             try {
                 bankService.logout(currentUsername);
@@ -507,11 +788,14 @@ public class BankClientUI extends JFrame {
             }
         }
         currentUsername = null;
+        currentAccount = null;
         bankService = null;
+        lastProfiles.clear();
         cardLayout.show(mainPanel, "LOGIN");
     }
 
     private void handleExit() {
+        autoRefreshTimer.stop();
         if (bankService != null && currentUsername != null) {
             try {
                 bankService.logout(currentUsername);

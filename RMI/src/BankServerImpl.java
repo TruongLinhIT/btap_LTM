@@ -159,6 +159,77 @@ public class BankServerImpl extends UnicastRemoteObject implements IBankService 
         return (acc != null) ? acc.getBalance() : 0;
     }
 
+    private Account sanitizeForClient(Account acc) {
+        if (acc == null) return null;
+        return new Account(
+                acc.getUsername(),
+                "",
+                acc.getBalance(),
+                acc.isLocked(),
+                acc.getFullName(),
+                acc.getEmail(),
+                acc.getPhone()
+        );
+    }
+
+    @Override
+    public synchronized Account getAccountInfo(String username) throws RemoteException {
+        return sanitizeForClient(db.getAccount(username));
+    }
+
+    @Override
+    public synchronized List<Account> getAllUserProfiles() throws RemoteException {
+        List<Account> all = db.getAllAccounts();
+        List<Account> profiles = new ArrayList<>(all.size());
+        for (Account acc : all) {
+            profiles.add(sanitizeForClient(acc));
+        }
+        return profiles;
+    }
+
+    @Override
+    public synchronized String updateUserInfo(String username, String fullName, String email, String phone, String newPassword) throws RemoteException {
+        String cleanName = (fullName != null) ? fullName.trim() : "";
+        String cleanEmail = (email != null) ? email.trim() : "";
+        String cleanPhone = (phone != null) ? phone.trim() : "";
+
+        if (cleanName.isEmpty()) {
+            return "Họ và tên không được để trống!";
+        }
+        if (!cleanEmail.isEmpty() && !cleanEmail.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            return "Định dạng email không hợp lệ!";
+        }
+        if (!cleanPhone.isEmpty() && !cleanPhone.matches("^[0-9+\\-\\s]{8,15}$")) {
+            return "Số điện thoại không hợp lệ (8-15 chữ số)!";
+        }
+
+        Account acc = db.getAccount(username);
+        if (acc == null) {
+            return "Tài khoản không tồn tại!";
+        }
+
+        String finalPassword = (newPassword != null && !newPassword.trim().isEmpty())
+                ? newPassword.trim()
+                : acc.getPassword();
+
+        boolean ok = db.updateUserInfo(username, cleanName, cleanEmail, cleanPhone, finalPassword);
+        if (!ok) {
+            return "Lỗi CSDL khi cập nhật thông tin!";
+        }
+
+        this.lastAccounts = db.getAllAccounts();
+        System.out.println("[" + serverName + "] ✏️ User '" + username + "' đã cập nhật thông tin cá nhân (" + cleanName + ").");
+
+        IBankService peer = getPeerServer();
+        if (peer != null) {
+            try {
+                peer.syncUserInfo(username, cleanName, cleanEmail, cleanPhone, finalPassword);
+            } catch (Exception ignored) {}
+        }
+
+        return "OK";
+    }
+
     @Override
     public synchronized String transfer(String fromUser, String toUser, double amount) throws RemoteException {
         if (amount <= 0) return "Số tiền chuyển phải lớn hơn 0!";
@@ -205,5 +276,13 @@ public class BankServerImpl extends UnicastRemoteObject implements IBankService 
         this.lastAccounts = db.getAllAccounts();
         System.out.printf("[%s - 🔄 ĐỒNG BỘ] Số dư mới: %s = %,.0f VNĐ, %s = %,.0f VNĐ\n", 
                 serverName, fromUser, newFromBalance, toUser, newToBalance);
+    }
+
+    @Override
+    public synchronized void syncUserInfo(String username, String fullName, String email, String phone, String password) throws RemoteException {
+        db.updateUserInfo(username, fullName, email, phone, password);
+        this.lastAccounts = db.getAllAccounts();
+        System.out.println("[" + serverName + " - 🔄 ĐỒNG BỘ] Thông tin user '" + username
+                + "' -> Họ tên: " + fullName + ", Email: " + email + ", SĐT: " + phone);
     }
 }
