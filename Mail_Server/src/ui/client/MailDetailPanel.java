@@ -2,6 +2,7 @@ package ui.client;
 
 import common.Attachment;
 import common.ParsedMail;
+import ui.UiStyle;
 
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
@@ -64,10 +65,14 @@ public class MailDetailPanel extends JPanel {
         lblSubject.setForeground(new Color(0x20, 0x21, 0x24));
 
         // Thanh công cụ trên cùng
-        styleButton(btnReply, new Color(0x1A, 0x73, 0xE8));
-        styleButton(btnForward, new Color(0x5F, 0x63, 0x68));
-        styleButton(btnDelete, new Color(0xD9, 0x30, 0x25));
-        styleButton(btnRaw, new Color(0x5F, 0x63, 0x68));
+        UiStyle.styleButton(btnReply, new Color(0x1A, 0x73, 0xE8), Color.WHITE, null, 6, 5, 10);
+        btnReply.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        UiStyle.styleSecondaryButton(btnForward);
+        btnForward.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        UiStyle.styleButton(btnDelete, new Color(0xD9, 0x30, 0x25), Color.WHITE, null, 6, 5, 10);
+        btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        UiStyle.styleSecondaryButton(btnRaw);
+        btnRaw.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 
         pnlActions.setOpaque(false);
         pnlActions.add(btnReply);
@@ -165,12 +170,6 @@ public class MailDetailPanel extends JPanel {
             if (onDeleteHandler != null) onDeleteHandler.run();
         });
         btnRaw.addActionListener(e -> showRawDialog());
-    }
-
-    private void styleButton(JButton btn, Color c) {
-        btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
     /** Xóa trắng giao diện khi không chọn thư nào */
@@ -271,8 +270,9 @@ public class MailDetailPanel extends JPanel {
         nameLbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 
         JButton btnSave = new JButton("💾 Lưu");
+        UiStyle.styleButton(btnSave, new Color(0xF3, 0xF4, 0xF6), new Color(0x1F, 0x29, 0x37),
+                new Color(0xD1, 0xD5, 0xDB), 6, 3, 8);
         btnSave.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        btnSave.setMargin(new Insets(2, 6, 2, 6));
         btnSave.addActionListener(e -> saveAttachment(a));
 
         p.add(nameLbl, BorderLayout.CENTER);

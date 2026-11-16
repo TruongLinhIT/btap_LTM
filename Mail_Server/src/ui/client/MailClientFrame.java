@@ -4,6 +4,7 @@ import client.MailClientService;
 import client.MailSummary;
 import common.Attachment;
 import common.ParsedMail;
+import ui.UiStyle;
 
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
@@ -153,6 +154,7 @@ public class MailClientFrame extends JFrame {
                 + service.getEmail() + "</small></html>");
 
         JButton btnLogout = new JButton("Đăng xuất");
+        UiStyle.styleSecondaryButton(btnLogout);
         btnLogout.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnLogout.addActionListener(e -> logout());
 
@@ -178,12 +180,9 @@ public class MailClientFrame extends JFrame {
         btnCompose.setMaximumSize(new Dimension(196, 48));
         btnCompose.setPreferredSize(new Dimension(196, 48));
         btnCompose.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btnCompose.setBackground(new Color(0xC2, 0xE7, 0xFF));
-        btnCompose.setForeground(new Color(0x00, 0x1D, 0x35));
+        UiStyle.styleButton(btnCompose, new Color(0xC2, 0xE7, 0xFF), new Color(0x00, 0x1D, 0x35),
+                new Color(0xA8, 0xD4, 0xFF), 14, 10, 16);
         btnCompose.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnCompose.setFocusPainted(false);
-        btnCompose.setBorder(new LineBorder(new Color(0xA8, 0xD4, 0xFF), 1, true));
-        btnCompose.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         pnlSidebarTop.add(btnCompose);
         pnlSidebarTop.add(Box.createVerticalStrut(20));
 
@@ -221,12 +220,14 @@ public class MailClientFrame extends JFrame {
 
         JButton btnQuickGmail = new JButton("⚡ Mẫu: Gửi Gmail");
         btnQuickGmail.setMaximumSize(new Dimension(196, 30));
+        UiStyle.styleSecondaryButton(btnQuickGmail);
         btnQuickGmail.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnQuickGmail.setToolTipText("Mở khung soạn thư gửi tới một địa chỉ @gmail.com");
         btnQuickGmail.addActionListener(e -> quickComposeGmail());
 
         JButton btnQuickLocal = new JButton("⚡ Mẫu: Gửi Localhost");
         btnQuickLocal.setMaximumSize(new Dimension(196, 30));
+        UiStyle.styleSecondaryButton(btnQuickLocal);
         btnQuickLocal.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnQuickLocal.setToolTipText("Mở khung soạn thư gửi nội bộ");
         btnQuickLocal.addActionListener(e -> quickComposeLocal());
@@ -253,7 +254,9 @@ public class MailClientFrame extends JFrame {
         pnlToolbar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(0xEA, 0xEA, 0xEA)));
 
         styleToolButton(btnRefresh);
-        styleToolButton(btnDelete);
+        UiStyle.styleButton(btnDelete, new Color(0xFE, 0xE2, 0xE2), new Color(0xB9, 0x1C, 0x1C),
+                new Color(0xFC, 0xA5, 0xA5), 6, 5, 12);
+        btnDelete.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         styleToolButton(btnToggleLog);
 
         pnlToolbar.add(btnRefresh);
@@ -312,6 +315,8 @@ public class MailClientFrame extends JFrame {
         lblLogTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
 
         JButton btnClearLog = new JButton("Xóa log");
+        UiStyle.styleButton(btnClearLog, new Color(0x37, 0x47, 0x4F), Color.WHITE,
+                new Color(0x54, 0x6E, 0x7A), 6, 3, 10);
         btnClearLog.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         btnClearLog.addActionListener(e -> txtProtocolLog.setText(""));
 
@@ -338,10 +343,7 @@ public class MailClientFrame extends JFrame {
         btn.setPreferredSize(new Dimension(196, 36));
         btn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         btn.setHorizontalAlignment(SwingConstants.LEFT);
-        btn.setFocusPainted(false);
-        btn.setBackground(new Color(0xF6, 0xF8, 0xFC));
-        btn.setBorder(new EmptyBorder(6, 12, 6, 12));
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        UiStyle.styleButton(btn, new Color(0xF6, 0xF8, 0xFC), new Color(0x20, 0x21, 0x24), null, 12, 6, 12);
     }
 
     private JPanel wrapNav(JButton btn) {
@@ -353,10 +355,8 @@ public class MailClientFrame extends JFrame {
     }
 
     private void styleToolButton(JButton btn) {
+        UiStyle.styleSecondaryButton(btn);
         btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btn.setFocusPainted(false);
-        btn.setBackground(Color.WHITE);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
     private void setupEvents() {
@@ -414,17 +414,18 @@ public class MailClientFrame extends JFrame {
     /** Chuyển thư mục (INBOX / SENT / TRASH) */
     public void switchFolder(String folder) {
         this.currentFolder = folder;
-        btnNavInbox.setBackground(folder.equals("INBOX") ? new Color(0xE8, 0xF0, 0xFE) : new Color(0xF6, 0xF8, 0xFC));
-        btnNavInbox.setFont(btnNavInbox.getFont().deriveFont(folder.equals("INBOX") ? Font.BOLD : Font.PLAIN));
-
-        btnNavSent.setBackground(folder.equals("SENT") ? new Color(0xE8, 0xF0, 0xFE) : new Color(0xF6, 0xF8, 0xFC));
-        btnNavSent.setFont(btnNavSent.getFont().deriveFont(folder.equals("SENT") ? Font.BOLD : Font.PLAIN));
-
-        btnNavTrash.setBackground(folder.equals("TRASH") ? new Color(0xE8, 0xF0, 0xFE) : new Color(0xF6, 0xF8, 0xFC));
-        btnNavTrash.setFont(btnNavTrash.getFont().deriveFont(folder.equals("TRASH") ? Font.BOLD : Font.PLAIN));
+        updateNavState(btnNavInbox, folder.equals("INBOX"));
+        updateNavState(btnNavSent, folder.equals("SENT"));
+        updateNavState(btnNavTrash, folder.equals("TRASH"));
 
         detailPanel.clear();
         reloadFolder(true);
+    }
+
+    private void updateNavState(JButton btn, boolean active) {
+        btn.setBackground(active ? new Color(0xD3, 0xE3, 0xFD) : new Color(0xF6, 0xF8, 0xFC));
+        btn.setForeground(active ? new Color(0x00, 0x1D, 0x35) : new Color(0x20, 0x21, 0x24));
+        btn.setFont(btn.getFont().deriveFont(active ? Font.BOLD : Font.PLAIN));
     }
 
     /** Tải lại danh sách thư của thư mục qua lệnh POP3 UIDL + TOP */

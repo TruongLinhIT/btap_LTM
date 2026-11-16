@@ -1,6 +1,7 @@
 package ui.server;
 
 import database.DatabaseManager;
+import ui.UiStyle;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -54,9 +55,9 @@ public class UserDialog extends JDialog {
         add(form, BorderLayout.CENTER);
 
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
-        btnSave.setBackground(new Color(0x1A, 0x73, 0xE8));
-        btnSave.setForeground(Color.WHITE);
+        UiStyle.styleButton(btnSave, new Color(0x1A, 0x73, 0xE8), Color.WHITE, null, 6, 6, 14);
         btnSave.setFont(btnSave.getFont().deriveFont(Font.BOLD));
+        UiStyle.styleSecondaryButton(btnCancel);
         bottom.add(btnSave);
         bottom.add(btnCancel);
         add(bottom, BorderLayout.SOUTH);

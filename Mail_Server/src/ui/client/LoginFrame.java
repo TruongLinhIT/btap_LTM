@@ -1,6 +1,7 @@
 package ui.client;
 
 import client.MailClientService;
+import ui.UiStyle;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -50,8 +51,7 @@ public class LoginFrame extends JFrame {
         form.add(hint, g);
         root.add(form, BorderLayout.CENTER);
 
-        loginBtn.setBackground(new Color(0x0B, 0x57, 0xD0));
-        loginBtn.setForeground(Color.WHITE);
+        UiStyle.styleButton(loginBtn, new Color(0x0B, 0x57, 0xD0), Color.WHITE, null, 8, 8, 16);
         loginBtn.setFont(loginBtn.getFont().deriveFont(Font.BOLD, 14f));
         loginBtn.setPreferredSize(new Dimension(10, 40));
         root.add(loginBtn, BorderLayout.SOUTH);

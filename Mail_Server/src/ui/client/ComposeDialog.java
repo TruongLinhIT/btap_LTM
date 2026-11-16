@@ -3,6 +3,7 @@ package ui.client;
 import client.MailClientService;
 import common.Attachment;
 import common.MimeUtil;
+import ui.UiStyle;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -78,13 +79,15 @@ public class ComposeDialog extends JDialog {
         root.add(center, BorderLayout.CENTER);
 
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
-        sendBtn.setBackground(new Color(0x0B, 0x57, 0xD0));
-        sendBtn.setForeground(Color.WHITE);
+        UiStyle.styleButton(sendBtn, new Color(0x0B, 0x57, 0xD0), Color.WHITE, null, 6, 6, 16);
         sendBtn.setFont(sendBtn.getFont().deriveFont(Font.BOLD, 13f));
         sendBtn.setPreferredSize(new Dimension(100, 34));
         JButton attachBtn = new JButton("📎 Đính kèm tệp");
         JButton removeBtn = new JButton("Bỏ tệp đã chọn");
         JButton discardBtn = new JButton("Hủy");
+        UiStyle.styleSecondaryButton(attachBtn);
+        UiStyle.styleSecondaryButton(removeBtn);
+        UiStyle.styleSecondaryButton(discardBtn);
         bottom.add(sendBtn);
         bottom.add(attachBtn);
         bottom.add(removeBtn);

@@ -7,6 +7,7 @@ import database.MailRecord;
 import database.UserRecord;
 import server.MailServerManager;
 import server.ServerListener;
+import ui.UiStyle;
 import ui.client.LoginFrame;
 import ui.client.MailClientFrame;
 
@@ -162,16 +163,13 @@ public class MainServerFrame extends JFrame implements ServerListener {
         lblPop3.setForeground(Color.LIGHT_GRAY);
         spinPop3Port.setPreferredSize(new Dimension(65, 26));
 
-        btnStartStop.setBackground(new Color(0x10, 0xB9, 0x81));
-        btnStartStop.setForeground(Color.WHITE);
+        UiStyle.styleButton(btnStartStop, new Color(0x10, 0xB9, 0x81), Color.WHITE, null, 6, 6, 12);
         btnStartStop.setFont(btnStartStop.getFont().deriveFont(Font.BOLD, 12f));
 
-        btnOpenClient.setBackground(new Color(0x3B, 0x82, 0xF6));
-        btnOpenClient.setForeground(Color.WHITE);
+        UiStyle.styleButton(btnOpenClient, new Color(0x3B, 0x82, 0xF6), Color.WHITE, null, 6, 6, 12);
         btnOpenClient.setFont(btnOpenClient.getFont().deriveFont(Font.BOLD, 12f));
 
-        btnOpenPma.setBackground(new Color(0x4B, 0x55, 0x63));
-        btnOpenPma.setForeground(Color.WHITE);
+        UiStyle.styleButton(btnOpenPma, new Color(0x4B, 0x55, 0x63), Color.WHITE, null, 6, 6, 12);
         btnOpenPma.setFont(btnOpenPma.getFont().deriveFont(Font.PLAIN, 12f));
 
         pnlHeaderRight.add(lblSmtp);
@@ -233,6 +231,7 @@ public class MainServerFrame extends JFrame implements ServerListener {
         lblRecentTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
         JButton btnRefreshDash = new JButton("🔄 Làm mới");
+        UiStyle.styleSecondaryButton(btnRefreshDash);
         btnRefreshDash.addActionListener(e -> refreshAllData());
 
         pnlRecentHeader.add(lblRecentTitle, BorderLayout.WEST);
@@ -279,6 +278,7 @@ public class MainServerFrame extends JFrame implements ServerListener {
         JPanel pnlBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         pnlBtns.setOpaque(false);
         JButton btnClear = new JButton("Xóa log");
+        UiStyle.styleSecondaryButton(btnClear);
         btnClear.addActionListener(e -> txtLiveLog.setText(""));
         pnlBtns.add(chkAutoScroll);
         pnlBtns.add(btnClear);
@@ -312,6 +312,13 @@ public class MainServerFrame extends JFrame implements ServerListener {
         JButton btnDelUser = new JButton("🗑 Xóa");
         JButton btnRefreshUsers = new JButton("🔄 Làm mới");
         JButton btnLaunchClientAsUser = new JButton("🚀 Mở Mail Client với User này");
+
+        UiStyle.styleButton(btnAddUser, new Color(0x1A, 0x73, 0xE8), Color.WHITE, null, 6, 5, 10);
+        UiStyle.styleSecondaryButton(btnEditPass);
+        UiStyle.styleSecondaryButton(btnToggleActive);
+        UiStyle.styleDangerButton(btnDelUser);
+        UiStyle.styleSecondaryButton(btnRefreshUsers);
+        UiStyle.styleButton(btnLaunchClientAsUser, new Color(0x10, 0xB9, 0x81), Color.WHITE, null, 6, 5, 12);
 
         pnlTop.add(btnAddUser);
         pnlTop.add(btnEditPass);
@@ -440,6 +447,10 @@ public class MainServerFrame extends JFrame implements ServerListener {
         JButton btnViewRaw = new JButton("👁 Xem Raw RFC822");
         JButton btnDeleteDbEmail = new JButton("🗑 Xóa thư");
         JButton btnRefreshDbEmail = new JButton("🔄 Làm mới");
+        UiStyle.styleSecondaryButton(btnSearchEmail);
+        UiStyle.styleSecondaryButton(btnViewRaw);
+        UiStyle.styleDangerButton(btnDeleteDbEmail);
+        UiStyle.styleSecondaryButton(btnRefreshDbEmail);
 
         pnlSearch.add(new JLabel("Tìm kiếm thư trong DB:"));
         pnlSearch.add(txtSearchDbEmail);
@@ -609,8 +620,9 @@ public class MainServerFrame extends JFrame implements ServerListener {
         JButton btnTestGmail = new JButton("🔍 Kiểm tra kết nối Gmail ngay");
         JButton btnFetchNow = new JButton("📥 Tải thư từ Gmail về ngay");
         JButton btnSaveGmail = new JButton("💾 Lưu cấu hình Gmail");
-        btnSaveGmail.setBackground(new Color(0x10, 0xB9, 0x81));
-        btnSaveGmail.setForeground(Color.WHITE);
+        UiStyle.styleSecondaryButton(btnTestGmail);
+        UiStyle.styleSecondaryButton(btnFetchNow);
+        UiStyle.styleButton(btnSaveGmail, new Color(0x10, 0xB9, 0x81), Color.WHITE, null, 6, 6, 14);
         btnSaveGmail.setFont(btnSaveGmail.getFont().deriveFont(Font.BOLD));
 
         pnlBtns.add(btnTestGmail);
@@ -726,8 +738,9 @@ public class MainServerFrame extends JFrame implements ServerListener {
         JButton btnTestDb = new JButton("🔌 Kiểm tra kết nối MySQL");
         JButton btnInitDb = new JButton("⚡ Khởi tạo lại Database (Init DB)");
         JButton btnSaveSys = new JButton("💾 Lưu cấu hình hệ thống");
-        btnSaveSys.setBackground(new Color(0x10, 0xB9, 0x81));
-        btnSaveSys.setForeground(Color.WHITE);
+        UiStyle.styleSecondaryButton(btnTestDb);
+        UiStyle.styleSecondaryButton(btnInitDb);
+        UiStyle.styleButton(btnSaveSys, new Color(0x10, 0xB9, 0x81), Color.WHITE, null, 6, 6, 14);
         btnSaveSys.setFont(btnSaveSys.getFont().deriveFont(Font.BOLD));
 
         pnlBtns.add(btnTestDb);
