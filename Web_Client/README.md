@@ -1,45 +1,27 @@
-# BÁO CÁO BÀI TẬP LỚN LẬP TRÌNH MẠNG
-## ĐỀ TÀI: WEB CLIENT (TRÌNH DUYỆT BROWSER) VÀ WEB SERVER
+# LTM Web Client – Trình Duyệt Web (Tương Tự Chrome / Cốc Cốc)
+
+Dự án **Web Client (Trình duyệt Browser tương tự Chrome / Cốc Cốc)** cài đặt giao thức **HTTP/1.1 trực tiếp trên TCP Socket (`java.net.Socket`)**, đáp ứng đầy đủ các yêu cầu: **GET, HEAD, POST, History, Download**.
 
 ---
 
-### 1. BẢNG ĐỐI CHIẾU TIÊU CHÍ ĐỀ BÀI (100% ĐẠT YÊU CẦU)
+## 1. Đáp ứng yêu cầu đề bài
 
-| STT | Yêu cầu trong đề bài | Hiện trạng trong đồ án | Đánh giá |
-| :---: | :--- | :--- | :---: |
-| 1 | **Web Server hoặc Web Client** | Đã làm **cả hai**: Trình duyệt Web Browser (Client) và Web Server cổng 8080 (Server). | **ĐẠT** |
-| 2 | **Có giao thức HTTP** | Triển khai HTTP/1.0 và HTTP/1.1 bằng Java Socket thuần TCP. | **ĐẠT** |
-| 3 | **Có hơn 1 dịch vụ của Server (.pdf, .mp3, .mp4...)** | Phục vụ 7 loại tệp: `.pdf`, `.mp3`, `.mp4`, `.png`, `.txt`, `.wav`, `.html`. | **ĐẠT** |
-| 4 | **Browser có get, head, post** | Đầy đủ 3 phương thức GET, HEAD và POST (kèm form submit và PostDialog). | **ĐẠT** |
-| 5 | **History, download,...** | Đầy đủ Lịch sử (`Ctrl+H`), Quản lý tải xuống (`Ctrl+J`), DevTools F12, DNS IP. | **ĐẠT** |
-| 6 | **Tương tự Chrome hoặc Cốc Cốc** | Đa thẻ (Multi-tabs), Bookmark Bar, nút Back/Forward/Reload/Home, phím tắt Chrome. | **ĐẠT** |
-
----
-
-### 2. CÁC NÚT BẤM TEST TRÊN GIAO DIỆN (DỄ DÙNG NHẤT)
-
-Khi mở ứng dụng bằng **`run.bat`**, ngay phía trên cùng có **Thanh Kiểm Thử Nhanh (Quick Testing Bar)**:
-1. **`⭐ TỰ ĐỘNG TEST (12/12 ĐẠT)`**: Bấm nút này để chạy tự động 12 ca kiểm thử và hiện hộp thoại xác nhận 100% đạt yêu cầu.
-2. **Nhóm HTTP**:
-   * **`📥 [GET]`**: Tải trang chủ `index.html`.
-   * **`🔍 [HEAD]`**: Thử nghiệm HTTP HEAD, tự động mở khung DevTools xem Response Headers.
-   * **`📨 [POST]`**: Mở hộp thoại gửi POST dữ liệu lên server.
-3. **Nhóm Dịch vụ Server**:
-   * **`📄 PDF`**: Xem dịch vụ tài liệu PDF (có nút Tải về + nút Mở tệp ngay).
-   * **`🎵 MP3`**: Xem dịch vụ âm thanh MP3 (có nút Tải về + nút Mở tệp ngay).
-   * **`🎬 MP4`**: Xem dịch vụ video MP4 (có nút Tải về + nút Mở tệp ngay).
-   * **`🖼 PNG`**: Hiển thị hình ảnh trực tiếp trên trình duyệt.
-   * **`📝 TXT`**: Hiển thị văn bản thuần.
-4. **Nhóm Tiện ích Chrome**:
-   * **`🕒 Lịch sử`**: Mở cửa sổ History (`Ctrl + H`).
-   * **`⬇ Tải xuống`**: Mở cửa sổ Downloads (`Ctrl + J`).
-   * **`🛠 DevTools`**: Bật/tắt thanh soi mã trạng thái và headers (`F12`).
-   * **`🌐 DNS`**: Bóc tách URL và phân giải địa chỉ IP qua `InetAddress`.
+| STT | Yêu cầu đề bài | Thực hiện trong dự án |
+| :---: | :--- | :--- |
+| 1 | **Web Client (Browser tương tự Chrome / Cốc Cốc)** | Giao diện đa thẻ (**Multi-tabs** `Ctrl+T` / `Ctrl+W`), thanh điều hướng (`Back`, `Forward`, `Reload`, `Home`), thanh địa chỉ & tìm kiếm **Omnibox**, thanh **Dấu trang (Bookmarks)**, Trang chủ & Tìm kiếm **Google** (`/search?q=...`), và **Chrome DevTools (`F12`)**. |
+| 2 | **Có giao thức HTTP** | Lõi `HttpEngine.java` đóng gói và phân tích trực tiếp bản tin **HTTP/1.1** (`Request-Line`, `Headers`, `Body`, `Content-Length`, `Chunked`, `Redirect 301/302`) qua `java.net.Socket`. |
+| 3 | **Phương thức `GET`** | Duyệt trang web qua URL trên thanh địa chỉ Omnibox hoặc tìm kiếm từ khóa trên Google (`GET /search?q=...`). |
+| 4 | **Phương thức `HEAD`** | Chọn `HEAD` trên thanh địa chỉ hoặc bấm nút **`HEAD`** trên thanh công cụ để chỉ lấy **HTTP Status & Response Headers** (`Body = 0 bytes`) và hiển thị bảng phân tích Header chi tiết. |
+| 5 | **Phương thức `POST`** | Gửi biểu mẫu `<form method="POST">` trực tiếp trên trang web hoặc dùng công cụ **`POST` (`PostDialog`)** hỗ trợ cả `application/x-www-form-urlencoded` và `application/json`. |
+| 6 | **Lịch sử duyệt web (`History`)** | Phím tắt **`Ctrl + H`** hoặc nút **`Lịch sử (Ctrl+H)`**: Tự động lưu vết vào `browser_history.txt`, hỗ trợ tìm kiếm từ khóa, lọc theo phương thức (`GET`, `HEAD`, `POST`), nhấp đúp để mở lại trang. |
+| 7 | **Quản lý tải xuống (`Download`)** | Phím tắt **`Ctrl + J`** hoặc nút **`Tải xuống (Ctrl+J)`**: Tải trang web / tài liệu từ bất kỳ URL nào qua HTTP/1.1 Socket về thư mục `downloads/` hoặc chọn nơi lưu (`Save As...`), có thanh tiến trình `%`, nút **Mở tệp** và **Mở thư mục**. |
 
 ---
 
-### 3. CÁC FILE CHẠY NHANH
-* **`run.bat`**: Khởi chạy Trình duyệt Web Browser (tự động bật Web Server cổng 8080).
-* **`run-test.bat`**: Chạy bộ kiểm thử tự động toàn diện từ dòng lệnh.
-* **`run-server.bat`**: Khởi động riêng Web Server độc lập nếu muốn.
-* **`build.bat`**: Biên dịch lại toàn bộ mã nguồn Java của dự án.
+## 2. Cách biên dịch và chạy
+
+```bat
+build.bat       :: Biên dịch toàn bộ mã nguồn
+run.bat         :: Khởi chạy Trình duyệt Web Client (Chrome / Cốc Cốc)
+run-test.bat    :: Chạy bộ kiểm thử tự động 8/8 tiêu chí của Web Client
+```

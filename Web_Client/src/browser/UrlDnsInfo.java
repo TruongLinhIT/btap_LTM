@@ -6,8 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Lop ket noi giua kien thuc package url (diachi.java va inet.java)
- * giup trinh duyet phan tich URL va tra cuu DNS IP.
+ * Phân tích cấu trúc URL và phân giải tên miền DNS ra địa chỉ IP (kế thừa url.diachi & url.inet).
  */
 public class UrlDnsInfo {
     private String rawUrl;
@@ -57,24 +56,24 @@ public class UrlDnsInfo {
 
     public String getFormattedSummary() {
         StringBuilder sb = new StringBuilder();
-        sb.append("=== PHAN TICH URL (Tuong tu diachi.java) ===\n");
-        sb.append("URL: ").append(rawUrl).append("\n");
-        sb.append("Protocol: ").append(protocol != null ? protocol : "N/A").append("\n");
-        sb.append("Host: ").append(host != null ? host : "N/A").append("\n");
-        sb.append("Port: ").append(port != -1 ? port : (defaultPort + " (Default)")).append("\n");
-        sb.append("Path: ").append(path != null ? path : "/").append("\n");
-        sb.append("File: ").append(file != null ? file : "").append("\n");
-        sb.append("Query: ").append(query != null ? query : "Khong co").append("\n");
-        sb.append("Ref (Anchor): ").append(ref != null ? ref : "Khong co").append("\n\n");
+        sb.append("=== 1. PHÂN TÍCH CẤU TRÚC URL (Kế thừa url.diachi) ===\n");
+        sb.append("URL gốc      : ").append(rawUrl).append("\n");
+        sb.append("Giao thức    : ").append(protocol != null ? protocol.toUpperCase() : "N/A").append("\n");
+        sb.append("Tên miền Host: ").append(host != null ? host : "N/A").append("\n");
+        sb.append("Cổng (Port)  : ").append(port != -1 ? port : (defaultPort + " (Mặc định)")).append("\n");
+        sb.append("Đường dẫn    : ").append(path != null && !path.isEmpty() ? path : "/").append("\n");
+        sb.append("Tệp (File)   : ").append(file != null ? file : "").append("\n");
+        sb.append("Truy vấn (?) : ").append(query != null ? query : "Không có").append("\n");
+        sb.append("Neo (#Ref)   : ").append(ref != null ? ref : "Không có").append("\n\n");
 
-        sb.append("=== TRA CUU DNS / IP (Tuong tu inet.java) ===\n");
+        sb.append("=== 2. PHÂN GIẢI TÊN MIỀN DNS IP (Kế thừa url.inet) ===\n");
         if (error != null) {
-            sb.append("Loi DNS: ").append(error).append("\n");
+            sb.append("Lỗi phân giải DNS: ").append(error).append("\n");
         } else {
-            sb.append("IP chinh: ").append(primaryIp != null ? primaryIp : "Unknown").append("\n");
-            sb.append("Tat ca cac dia chi IP tim thay (getAllByName):\n");
+            sb.append("Địa chỉ IP chính : ").append(primaryIp != null ? primaryIp : "Unknown").append("\n");
+            sb.append("Danh sách IP (InetAddress.getAllByName):\n");
             for (String ip : allIps) {
-                sb.append("  - ").append(ip).append("\n");
+                sb.append("  • ").append(ip).append("\n");
             }
         }
         return sb.toString();

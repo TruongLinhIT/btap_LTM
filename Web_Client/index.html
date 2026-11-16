@@ -1,166 +1,90 @@
 <html>
 <head>
-    <title>Hệ Thống Web Client & Web Server - Lập Trình Mạng</title>
+    <title>Google - Trình Duyệt Web Client (HTTP/1.1)</title>
 </head>
-<body bgcolor="#F1F3F4" text="#202124" link="#0B57D0" vlink="#0B57D0" alink="#EA4335">
+<body bgcolor="#FFFFFF" text="#202124" link="#1A73E8" vlink="#1A73E8" alink="#EA4335">
+
+<table width="100%" cellpadding="10" cellspacing="0" border="0">
+    <tr>
+        <td align="right">
+            <font face="Arial, sans-serif" size="2">
+                <a href="/search?q=Giao+thuc+HTTP+GET+HEAD+POST">Tìm kiếm Google (GET)</a> &nbsp;&nbsp;|&nbsp;&nbsp;
+                <a href="/post_test.html">Gửi biểu mẫu (POST)</a> &nbsp;&nbsp;|&nbsp;&nbsp;
+                <a href="/about_http.html">Tài liệu HTTP/1.1</a> &nbsp;&nbsp;|&nbsp;&nbsp;
+                <a href="http://example.com">Example.com</a>
+            </font>
+        </td>
+    </tr>
+</table>
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td align="center">
 
-    <!-- KHỐI HEADER -->
-    <table width="92%" cellpadding="16" cellspacing="0" border="0" bgcolor="#0B57D0">
+    <br>
+    <font face="Arial, Helvetica, sans-serif" size="7"><b>
+        <font color="#4285F4">G</font><font color="#EA4335">o</font><font color="#FBBC05">o</font><font color="#4285F4">g</font><font color="#34A853">l</font><font color="#EA4335">e</font>
+    </b></font>
+    <br>
+    <font face="Arial, sans-serif" size="2" color="#5F6368">
+        <b>Trình Duyệt Web Client (Tương tự Chrome / Cốc Cốc) &bull; Giao thức HTTP/1.1 trên TCP Socket</b>
+    </font>
+    <br><br>
+
+    <table width="76%" cellpadding="14" cellspacing="0" border="1" bordercolor="#DFE1E5" bgcolor="#F8F9FA">
         <tr>
             <td align="center">
-                <font color="#FFFFFF" face="Arial, Helvetica, sans-serif" size="5"><b>HỆ THỐNG WEB CLIENT & WEB SERVER</b></font><br>
-                <font color="#E8F0FE" face="Arial, Helvetica, sans-serif" size="3">Bài Tập Môn Lập Trình Mạng (LTM) - Đáp ứng đầy đủ 100% tiêu chí đề bài</font>
+                <form action="/search" method="GET">
+                    <font face="Arial" size="2" color="#3C4043"><b>Nhập từ khóa tìm kiếm trên Google (Truy vấn qua phương thức HTTP GET):</b></font><br><br>
+                    <input type="text" name="q" value="Giao thuc HTTP GET HEAD POST History Download" size="56">
+                    <br><br>
+                    <input type="submit" value="  Tìm trên Google (HTTP GET)  ">
+                </form>
             </td>
         </tr>
     </table>
 
     <br>
 
-    <!-- KHỐI 1: CÁC DỊCH VỤ SERVER (MULTIMEDIA) -->
-    <table width="92%" cellpadding="14" cellspacing="0" border="1" bordercolor="#DADCE0" bgcolor="#FFFFFF">
-        <tr>
-            <td bgcolor="#E8F0FE">
-                <font color="#0B57D0" face="Arial, Helvetica, sans-serif" size="4"><b>1. CÁC DỊCH VỤ SERVER CUNG CẤP (ĐA PHƯƠNG TIỆN & FILES)</b></font><br>
-                <font color="#5F6368" face="Arial, Helvetica, sans-serif" size="2"><i>(Server phục vụ hơn 1 dịch vụ: .pdf, .mp3, .mp4, .png, .txt, .wav...)</i></font>
+    <table width="88%" cellpadding="12" cellspacing="0" border="1" bordercolor="#E0E0E0" bgcolor="#FFFFFF">
+        <tr bgcolor="#E8F0FE">
+            <td width="55%">
+                <font face="Arial" size="3" color="#1967D2"><b>1. GỬI BIỂU MẪU HTTP POST TRỰC TIẾP</b></font>
+            </td>
+            <td width="45%">
+                <font face="Arial" size="3" color="#1967D2"><b>2. CÁC TÍNH NĂNG CỦA TRÌNH DUYỆT (BROWSER)</b></font>
             </td>
         </tr>
         <tr>
-            <td>
-                <table width="100%" cellpadding="8" cellspacing="0" border="1" bordercolor="#E0E0E0">
-                    <tr bgcolor="#F8F9FA">
-                        <th align="left"><font face="Arial" size="2">Loại Dịch Vụ</font></th>
-                        <th align="left"><font face="Arial" size="2">Tên Tệp</font></th>
-                        <th align="left"><font face="Arial" size="2">MIME Type</font></th>
-                        <th align="center"><font face="Arial" size="2">Thao Tác Thử Nghiệm</font></th>
-                    </tr>
-                    <tr>
-                        <td><font face="Arial" size="2">📄 <b>Tài liệu PDF</b></font></td>
-                        <td><font face="Courier New" size="2">sample.pdf</font></td>
-                        <td><font face="Courier New" size="2">application/pdf</font></td>
-                        <td align="center"><font face="Arial" size="2"><a href="/sample.pdf"><b>[ Xem &amp; Tải PDF ]</b></a></font></td>
-                    </tr>
-                    <tr bgcolor="#FAFAFA">
-                        <td><font face="Arial" size="2">🎵 <b>Âm thanh MP3</b></font></td>
-                        <td><font face="Courier New" size="2">sample.mp3</font></td>
-                        <td><font face="Courier New" size="2">audio/mpeg</font></td>
-                        <td align="center"><font face="Arial" size="2"><a href="/sample.mp3"><b>[ Nghe &amp; Tải MP3 ]</b></a></font></td>
-                    </tr>
-                    <tr>
-                        <td><font face="Arial" size="2">🎬 <b>Video MP4</b></font></td>
-                        <td><font face="Courier New" size="2">sample.mp4</font></td>
-                        <td><font face="Courier New" size="2">video/mp4</font></td>
-                        <td align="center"><font face="Arial" size="2"><a href="/sample.mp4"><b>[ Xem &amp; Tải MP4 ]</b></a></font></td>
-                    </tr>
-                    <tr bgcolor="#FAFAFA">
-                        <td><font face="Arial" size="2">🖼 <b>Hình ảnh PNG</b></font></td>
-                        <td><font face="Courier New" size="2">sample.png</font></td>
-                        <td><font face="Courier New" size="2">image/png</font></td>
-                        <td align="center"><font face="Arial" size="2"><a href="/sample.png"><b>[ Xem Trực Tiếp Ảnh ]</b></a></font></td>
-                    </tr>
-                    <tr>
-                        <td><font face="Arial" size="2">📝 <b>Văn bản TXT</b></font></td>
-                        <td><font face="Courier New" size="2">sample.txt</font></td>
-                        <td><font face="Courier New" size="2">text/plain</font></td>
-                        <td align="center"><font face="Arial" size="2"><a href="/sample.txt"><b>[ Đọc File Văn Bản ]</b></a></font></td>
-                    </tr>
-                    <tr bgcolor="#FAFAFA">
-                        <td><font face="Arial" size="2">🔊 <b>Âm thanh WAV</b></font></td>
-                        <td><font face="Courier New" size="2">sample.wav</font></td>
-                        <td><font face="Courier New" size="2">audio/wav</font></td>
-                        <td align="center"><font face="Arial" size="2"><a href="/sample.wav"><b>[ Nghe Âm Thanh WAV ]</b></a></font></td>
-                    </tr>
-                </table>
+            <td valign="top" bgcolor="#FAFAFA">
+                <form action="/api/submit" method="POST">
+                    <font face="Arial" size="2"><b>Họ và tên sinh viên:</b></font><br>
+                    <input type="text" name="hoten" value="Nguyen Van A" size="36"><br><br>
+
+                    <font face="Arial" size="2"><b>Mã số sinh viên:</b></font><br>
+                    <input type="text" name="masv" value="21IT001" size="36"><br><br>
+
+                    <font face="Arial" size="2"><b>Nội dung gửi qua HTTP POST:</b></font><br>
+                    <input type="text" name="noidung" value="Kiem thu phuong thuc POST tu trinh duyet Web Client" size="42"><br><br>
+
+                    <input type="submit" value="  Gửi Dữ Liệu (HTTP POST)  ">
+                </form>
             </td>
-        </tr>
-    </table>
-
-    <br>
-
-    <!-- KHỐI 2: THỬ NGHIỆM HTTP METHODS (GET, HEAD, POST) -->
-    <table width="92%" cellpadding="14" cellspacing="0" border="1" bordercolor="#DADCE0" bgcolor="#FFFFFF">
-        <tr>
-            <td bgcolor="#E8F0FE">
-                <font color="#0B57D0" face="Arial, Helvetica, sans-serif" size="4"><b>2. THỬ NGHIỆM GIAO THỨC HTTP (GET, HEAD, POST)</b></font><br>
-                <font color="#5F6368" face="Arial, Helvetica, sans-serif" size="2"><i>(Hỗ trợ đầy đủ phương thức HTTP Client và xử lý phía Server)</i></font>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <!-- PHƯƠNG THỨC POST -->
-                <table width="100%" cellpadding="8" cellspacing="0" border="0" bgcolor="#F8F9FA">
-                    <tr>
-                        <td>
-                            <font face="Arial" size="3"><b>A. Thử Nghiệm Phương Thức HTTP POST:</b></font><br>
-                            <font face="Arial" size="2" color="#555555">Điền thông tin và bấm nút bên dưới, Trình duyệt sẽ gửi gói tin POST qua Socket TCP lên Server:</font>
-                            <br><br>
-                            <form action="http://localhost:8080/api/submit" method="POST">
-                                <font face="Arial" size="2"><b>Họ và tên sinh viên:</b></font><br>
-                                <input type="text" name="hoten" value="Nguyen Van A" size="40"><br><br>
-
-                                <font face="Arial" size="2"><b>Mã sinh viên:</b></font><br>
-                                <input type="text" name="masv" value="21IT001" size="40"><br><br>
-
-                                <font face="Arial" size="2"><b>Nội dung kiểm thử POST:</b></font><br>
-                                <input type="text" name="noidung" value="Thu nghiem gui HTTP POST qua Socket TCP" size="50"><br><br>
-
-                                <input type="submit" value="  🚀 BẤM ĐỂ GỬI HTTP POST LÊN SERVER  ">
-                            </form>
-                        </td>
-                    </tr>
-                </table>
-
-                <br>
-
-                <!-- PHƯƠNG THỨC GET VÀ HEAD -->
-                <table width="100%" cellpadding="8" cellspacing="0" border="1" bordercolor="#E0E0E0">
-                    <tr>
-                        <td width="50%">
-                            <font face="Arial" size="2"><b>B. Phương Thức HTTP GET:</b></font><br>
-                            <font face="Arial" size="2" color="#555555">Tải lại trang web hoặc chuyển trang qua URL:</font><br>
-                            &bull; <a href="http://localhost:8080/">Tải lại Trang chủ (GET)</a><br>
-                            &bull; <a href="http://localhost:8080/sample.txt">Xem file text bằng GET</a>
-                        </td>
-                        <td width="50%">
-                            <font face="Arial" size="2"><b>C. Phương Thức HTTP HEAD &amp; Lỗi 404:</b></font><br>
-                            <font face="Arial" size="2" color="#555555">Chỉ lấy Header không tải Body, hoặc kiểm tra mã 404:</font><br>
-                            &bull; <font color="#0B57D0">Dùng nút <b>[🔍 HEAD]</b> trên thanh công cụ phía trên</font><br>
-                            &bull; <a href="http://localhost:8080/trang_khong_ton_tai.html">Thử nghiệm trang lỗi 404 Not Found</a>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-
-    <br>
-
-    <!-- KHỐI 3: TÍNH NĂNG TRÌNH DUYỆT GIỐNG CHROME / CỐC CỐC -->
-    <table width="92%" cellpadding="14" cellspacing="0" border="1" bordercolor="#DADCE0" bgcolor="#FFFFFF">
-        <tr>
-            <td bgcolor="#E8F0FE">
-                <font color="#0B57D0" face="Arial, Helvetica, sans-serif" size="4"><b>3. CÁC TÍNH NĂNG TRÌNH DUYỆT (TƯƠNG TỰ CHROME / CỐC CỐC)</b></font>
-            </td>
-        </tr>
-        <tr>
-            <td>
+            <td valign="top">
                 <font face="Arial" size="2">
-                &bull; <b>Quản lý Tải xuống (Download Manager):</b> Bấm phím tắt <b>Ctrl + J</b> hoặc nút <b>[⬇ Tải xuống]</b> ở thanh phía trên.<br>
-                &bull; <b>Lịch sử duyệt web (History):</b> Bấm phím tắt <b>Ctrl + H</b> hoặc nút <b>[🕒 Lịch sử]</b> để tìm kiếm và xem các URL đã vào.<br>
-                &bull; <b>Developer Tools (F12):</b> Bấm phím <b>F12</b> hoặc nút <b>[🛠 DevTools]</b> để soi mã trạng thái (200, 404), thời gian phản hồi (ms) và HTTP Headers.<br>
-                &bull; <b>Hệ thống Đa thẻ (Multi-tabs):</b> Bấm nút dấu <b>+</b> trên thanh tab hoặc phím <b>Ctrl + T</b> để mở thêm thẻ mới; bấm <b>x</b> để đóng thẻ.<br>
-                &bull; <b>Phân tích URL &amp; Phân giải DNS IP:</b> Bấm nút <b>[🌐 DNS]</b> để xem chi tiết Host, Port, Path và địa chỉ IP InetAddress.<br>
-                &bull; <b>Kiểm thử Tự động:</b> Bấm nút màu xanh <b>[⭐ TỰ ĐỘNG TEST (12/12 ĐẠT)]</b> ở hàng đầu tiên để chạy kiểm thử và xem bảng kết quả.
+                    &bull; <b>HTTP GET:</b> Nhập địa chỉ URL hoặc từ khóa tìm kiếm lên thanh Omnibox.<br><br>
+                    &bull; <b>HTTP HEAD:</b> Chọn <b>HEAD</b> hoặc bấm nút <b>[HEAD]</b> trên thanh công cụ để chỉ lấy HTTP Response Headers (Body = 0 bytes).<br><br>
+                    &bull; <b>HTTP POST:</b> Điền biểu mẫu bên trái hoặc bấm nút <b>[POST]</b> để gửi dữ liệu Form / JSON.<br><br>
+                    &bull; <b>Lịch sử (History - Ctrl+H):</b> Lưu vết, tìm kiếm và lọc các trang đã truy cập.<br><br>
+                    &bull; <b>Tải xuống (Download - Ctrl+J):</b> Tải trang web / tài liệu về máy qua giao thức HTTP/1.1 (<a href="/about_http.html?download=true">Tải thử trang tài liệu HTTP</a>).<br><br>
+                    &bull; <b>Kiểm thử mã lỗi 404:</b> <a href="/trang_khong_ton_tai.html">Mở đường dẫn không tồn tại (404 Not Found)</a>
                 </font>
             </td>
         </tr>
     </table>
 
     <br>
-    <font face="Arial" size="2" color="#70757A">Java Socket HTTP/1.1 Web Server &amp; Web Browser Client &bull; Lập Trình Mạng 2026</font>
+    <font face="Arial" size="2" color="#70757A">Web Client Browser &bull; Giao thức HTTP/1.1 (GET, HEAD, POST, History, Download)</font>
     <br><br>
 
 </td>

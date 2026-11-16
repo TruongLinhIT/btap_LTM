@@ -2,7 +2,6 @@ package browser;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import javax.swing.BorderFactory;
@@ -22,29 +21,28 @@ public class DnsInspectorDialog extends JDialog {
 
     public DnsInspectorDialog(JFrame parent, String initialUrl) {
         super(parent, "Phân tích URL & Tra cứu DNS IP (Kế thừa url.diachi & url.inet)", false);
-        setSize(650, 480);
+        setSize(660, 480);
         setLocationRelativeTo(parent);
         setLayout(new BorderLayout(8, 8));
 
-        initUI(initialUrl != null && !initialUrl.isEmpty() ? initialUrl : "http://vku.udn.vn");
+        initUI(initialUrl != null && !initialUrl.isEmpty() ? initialUrl : WebBrowser.getHomeUrl());
     }
 
     private void initUI(String defaultVal) {
         JPanel topPanel = new JPanel(new BorderLayout(6, 6));
-        topPanel.setBorder(BorderFactory.createEmptyBorder(10, 12, 6, 12));
+        topPanel.setBorder(BorderFactory.createEmptyBorder(12, 14, 8, 14));
+        topPanel.setBackground(new Color(248, 249, 250));
 
-        JLabel lbl = new JLabel("Nhập URL hoặc Hostname:");
-        lbl.setFont(new Font("SansSerif", Font.BOLD, 12));
+        JLabel lbl = new JLabel("Nhập địa chỉ URL hoặc tên miền cần bóc tách & phân giải DNS IP:");
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
 
-        JPanel row = new JPanel(new BorderLayout(6, 0));
+        JPanel row = new JPanel(new BorderLayout(8, 0));
+        row.setOpaque(false);
         txtInput = new JTextField(defaultVal);
-        txtInput.setFont(new Font("Monospaced", Font.PLAIN, 13));
+        txtInput.setFont(new Font("Consolas", Font.PLAIN, 13));
         txtInput.addActionListener(e -> analyze());
 
-        JButton btnAnalyze = new JButton(" Phân tích URL & Tra DNS ");
-        btnAnalyze.setBackground(new Color(26, 115, 232));
-        btnAnalyze.setForeground(Color.WHITE);
-        btnAnalyze.setFont(new Font("SansSerif", Font.BOLD, 12));
+        JButton btnAnalyze = UiUtil.createColoredButton(" Phân tích URL & Tra DNS ", new Color(26, 115, 232), Color.WHITE, 6);
         btnAnalyze.addActionListener(e -> analyze());
 
         row.add(txtInput, BorderLayout.CENTER);
@@ -56,12 +54,12 @@ public class DnsInspectorDialog extends JDialog {
 
         txtResult = new JTextArea();
         txtResult.setEditable(false);
-        txtResult.setFont(new Font("Monospaced", Font.PLAIN, 13));
-        txtResult.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        txtResult.setFont(new Font("Consolas", Font.PLAIN, 13));
+        txtResult.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
         add(new JScrollPane(txtResult), BorderLayout.CENTER);
 
-        JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton btnClose = new JButton("Đóng");
+        JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 8));
+        JButton btnClose = UiUtil.createOutlineButton("Đóng", new Color(203, 213, 225), new Color(30, 41, 59));
         btnClose.addActionListener(e -> setVisible(false));
         bottomBar.add(btnClose);
         add(bottomBar, BorderLayout.SOUTH);
@@ -73,7 +71,7 @@ public class DnsInspectorDialog extends JDialog {
         String input = txtInput.getText().trim();
         if (input.isEmpty()) return;
 
-        txtResult.setText("Đang tra cứu DNS và phân tích cấu trúc URL...\n");
+        txtResult.setText("Đang phân tích cấu trúc URL và tra cứu DNS IP qua InetAddress...\n");
 
         new Thread(() -> {
             UrlDnsInfo info = UrlDnsInfo.analyze(input);

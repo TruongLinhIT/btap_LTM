@@ -3,14 +3,16 @@ package browser;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
-import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Image;
 import java.io.ByteArrayInputStream;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
+import java.util.Map;
 import java.util.Stack;
 import java.util.function.Consumer;
 import javax.imageio.ImageIO;
@@ -21,7 +23,6 @@ import javax.swing.JComboBox;
 import javax.swing.JEditorPane;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
@@ -31,40 +32,39 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.event.HyperlinkEvent;
+import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
 
+/**
+ * Một thẻ trình duyệt (Tab) mang phong cách Google Chrome / Cốc Cốc:
+ * - Thanh điều hướng Back, Forward, Reload, Home (Google)
+ * - Thanh Omnibox thông minh: chọn GET / HEAD / POST, nhập URL hoặc tìm kiếm từ khóa trên Google
+ * - Hỗ trợ gửi Form GET & Form POST ngay trên trang HTML
+ * - Tích hợp nút nhanh: HEAD, POST, Download (Ctrl+J), History (Ctrl+H), DevTools (F12)
+ */
 public class BrowserTab extends JPanel {
 
-    private JFrame parentFrame;
-    private Consumer<String> titleChangeCallback;
+    private final JFrame parentFrame;
+    private final Consumer<String> titleChangeCallback;
 
-    // Navigation stacks
-    private Stack<String> backStack = new Stack<>();
-    private Stack<String> forwardStack = new Stack<>();
+    private final Stack<String> backStack = new Stack<>();
+    private final Stack<String> forwardStack = new Stack<>();
     private String currentUrl = "";
 
-    // Toolbar components
     private JButton btnBack;
     private JButton btnForward;
     private JButton btnReload;
     private JButton btnHome;
-    private JTextField txtAddress;
     private JComboBox<String> cbMethod;
+    private JTextField txtAddress;
     private JButton btnGo;
-    private JButton btnDevTools;
-    private JButton btnDns;
 
-    // Content Display
     private JPanel contentContainer;
     private CardLayout cardLayout;
     private JEditorPane htmlPane;
     private JLabel lblImageDisplay;
     private JTextArea txtPlainText;
-    private JPanel mediaPanel;
-    private JLabel lblMediaInfo;
-    private JButton btnDownloadMedia;
 
-    // DevTools & Inspector
     private JSplitPane mainSplit;
     private JPanel devToolsPanel;
     private boolean devToolsVisible = false;
@@ -78,13 +78,9 @@ public class BrowserTab extends JPanel {
     private JTextArea txtPageSource;
     private JTextArea txtDnsInfo;
 
-    // Status bar
     private JLabel lblStatus;
     private JProgressBar progressBar;
     private JLabel lblProtocol;
-
-    // Cache last response
-    private HttpResponse lastResponse;
 
     public BrowserTab(JFrame parentFrame, String initialUrl, Consumer<String> titleChangeCallback) {
         this.parentFrame = parentFrame;
@@ -93,23 +89,23 @@ public class BrowserTab extends JPanel {
 
         initUI();
 
+        String home = WebBrowser.getHomeUrl();
         if (initialUrl != null && !initialUrl.isEmpty()) {
             navigate(initialUrl, "GET", false);
         } else {
-            navigate("http://localhost:8080/", "GET", false);
+            navigate(home, "GET", false);
         }
     }
 
     private void initUI() {
-        // 1. TOOLBAR
-        JPanel toolbar = new JPanel(new BorderLayout(6, 4));
+        // 1. THANH ĐIỀU HƯỚNG & OMNIBOX KIỂU CHROME / CỐC CỐC
+        JPanel toolbar = new JPanel(new BorderLayout(8, 4));
         toolbar.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(218, 220, 224)),
-                BorderFactory.createEmptyBorder(6, 8, 6, 8)
+                BorderFactory.createEmptyBorder(6, 10, 6, 10)
         ));
         toolbar.setBackground(new Color(248, 249, 250));
 
-        // Nav buttons (Left)
         JPanel navButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         navButtons.setOpaque(false);
 
@@ -117,60 +113,91 @@ public class BrowserTab extends JPanel {
         btnBack.setEnabled(false);
         btnBack.addActionListener(e -> goBack());
 
-        btnForward = createToolButton(" > ", "Trang kế tiếp");
+        btnForward = createToolButton(" > ", "Tiến tới trang sau");
         btnForward.setEnabled(false);
         btnForward.addActionListener(e -> goForward());
 
-        btnReload = createToolButton(" Tải lại ", "Tải lại trang (Reload)");
+        btnReload = createToolButton(" Tải lại ", "Tải lại trang (F5 / Ctrl + R)");
         btnReload.addActionListener(e -> reload());
 
-        btnHome = createToolButton(" Trang chủ ", "Về trang chủ (Localhost Server)");
-        btnHome.addActionListener(e -> navigate("http://localhost:8080/", "GET", false));
+        btnHome = createToolButton(" Trang chủ Google ", "Về Trang chủ Google");
+        btnHome.addActionListener(e -> navigate(WebBrowser.getHomeUrl(), "GET", false));
 
         navButtons.add(btnBack);
         navButtons.add(btnForward);
         navButtons.add(btnReload);
         navButtons.add(btnHome);
 
-        // Address bar & Method (Center)
+        // Thanh địa chỉ Omnibox ở giữa
         JPanel addressPanel = new JPanel(new BorderLayout(6, 0));
         addressPanel.setOpaque(false);
 
         String[] methods = {"GET", "HEAD", "POST"};
         cbMethod = new JComboBox<>(methods);
-        cbMethod.setFont(new Font("SansSerif", Font.BOLD, 12));
-        cbMethod.setToolTipText("Chọn phương thức HTTP");
+        cbMethod.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        cbMethod.setToolTipText("Chọn phương thức giao thức HTTP (GET, HEAD, POST)");
 
         txtAddress = new JTextField();
-        txtAddress.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        txtAddress.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txtAddress.setToolTipText("Nhập địa chỉ URL hoặc nhập từ khóa để tìm kiếm trên Google");
         txtAddress.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(180, 180, 180), 1, true),
-                BorderFactory.createEmptyBorder(4, 8, 4, 8)
+                BorderFactory.createLineBorder(new Color(195, 205, 220), 1, true),
+                BorderFactory.createEmptyBorder(5, 10, 5, 10)
         ));
         txtAddress.addActionListener(e -> triggerNavigate());
 
-        btnGo = UiUtil.createColoredButton("  Đi  ", new Color(11, 87, 208), Color.WHITE, 4);
-        btnGo.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnGo = UiUtil.createColoredButton(" Đi / Gửi ", new Color(26, 115, 232), Color.WHITE, 8);
+        btnGo.setToolTipText("Thực thi yêu cầu HTTP hoặc Tìm kiếm Google (Enter)");
         btnGo.addActionListener(e -> triggerNavigate());
 
         addressPanel.add(cbMethod, BorderLayout.WEST);
         addressPanel.add(txtAddress, BorderLayout.CENTER);
         addressPanel.add(btnGo, BorderLayout.EAST);
 
-        // Action tools (Right)
+        // Các nút tính năng trình duyệt bên phải thanh Omnibox
         JPanel actionButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         actionButtons.setOpaque(false);
 
-        btnDns = createToolButton(" DNS / URL ", "Xem phân tích URL & DNS IP (diachi.java & inet.java)");
-        btnDns.addActionListener(e -> {
-            DnsInspectorDialog dlg = new DnsInspectorDialog(parentFrame, txtAddress.getText());
+        JButton btnQuickHead = UiUtil.createOutlineButton("HEAD", new Color(195, 205, 220), new Color(109, 40, 217));
+        btnQuickHead.setToolTipText("Gửi yêu cầu HTTP HEAD chỉ lấy Response Headers của trang hiện tại");
+        btnQuickHead.addActionListener(e -> {
+            cbMethod.setSelectedItem("HEAD");
+            String target = txtAddress.getText().trim();
+            if (target.isEmpty()) target = WebBrowser.getHomeUrl();
+            navigate(target, "HEAD", false);
+        });
+
+        JButton btnQuickPost = UiUtil.createOutlineButton("POST", new Color(195, 205, 220), new Color(19, 115, 51));
+        btnQuickPost.setToolTipText("Mở công cụ gửi dữ liệu HTTP POST");
+        btnQuickPost.addActionListener(e -> {
+            PostDialog dlg = new PostDialog(parentFrame, currentUrl, this::displayResponse);
             dlg.setVisible(true);
         });
 
-        btnDevTools = createToolButton(" DevTools (F12) ", "Bật/Tắt công cụ kiểm tra HTTP Inspector");
+        JButton btnQuickDownload = UiUtil.createOutlineButton("Tải xuống (Ctrl+J)", new Color(195, 205, 220), new Color(26, 115, 232));
+        btnQuickDownload.setToolTipText("Tải trang hiện tại về máy hoặc mở trình quản lý Download (Ctrl + J)");
+        btnQuickDownload.addActionListener(e -> {
+            String target = currentUrl != null && !currentUrl.isEmpty() ? currentUrl : txtAddress.getText().trim();
+            if (!target.isEmpty()) {
+                DownloadManager.quickDownload(parentFrame, target);
+            } else {
+                DownloadManager.showManagerDialog(parentFrame);
+            }
+        });
+
+        JButton btnQuickHistory = createToolButton("Lịch sử (Ctrl+H)", "Mở Lịch sử duyệt web (Ctrl + H)");
+        btnQuickHistory.addActionListener(e -> {
+            HistoryDialog dlg = new HistoryDialog(parentFrame, url -> navigate(url, "GET", false));
+            dlg.setVisible(true);
+        });
+
+        JButton btnDevTools = createToolButton("DevTools (F12)", "Bật/Tắt Chrome DevTools soi gói tin HTTP Socket");
         btnDevTools.addActionListener(e -> toggleDevTools());
 
-        actionButtons.add(btnDns);
+        actionButtons.add(btnQuickHead);
+        actionButtons.add(btnQuickPost);
+        actionButtons.add(btnQuickDownload);
+        actionButtons.add(btnQuickHistory);
         actionButtons.add(btnDevTools);
 
         toolbar.add(navButtons, BorderLayout.WEST);
@@ -179,122 +206,86 @@ public class BrowserTab extends JPanel {
 
         add(toolbar, BorderLayout.NORTH);
 
-        // 2. CONTENT VIEWER (CardLayout)
+        // 2. KHUNG HIỂN THỊ NỘI DUNG TRANG WEB
         cardLayout = new CardLayout();
         contentContainer = new JPanel(cardLayout);
 
-        // 2.1 HTML Pane
         htmlPane = new JEditorPane();
         htmlPane.setEditable(false);
         htmlPane.setContentType("text/html");
         HTMLEditorKit kit = new HTMLEditorKit();
+        kit.setAutoFormSubmission(false);
         htmlPane.setEditorKit(kit);
+
         htmlPane.addHyperlinkListener(e -> {
             if (e instanceof javax.swing.text.html.FormSubmitEvent) {
                 javax.swing.text.html.FormSubmitEvent fse = (javax.swing.text.html.FormSubmitEvent) e;
-                String method = fse.getMethod().toString();
-                String data = fse.getData();
-                String actionUrl = fse.getURL() != null ? fse.getURL().toString() : "http://localhost:8080/api/submit";
+                String method = fse.getMethod() != null ? fse.getMethod().toString().toUpperCase() : "GET";
+                String data = fse.getData() != null ? fse.getData() : "";
+                String actionUrl = fse.getURL() != null ? fse.getURL().toString() : (WebBrowser.getHomeUrl() + "api/submit");
                 if ("POST".equalsIgnoreCase(method)) {
                     sendPostRequest(actionUrl, data);
-                    return;
                 } else {
-                    navigate(actionUrl + (data != null && !data.isEmpty() ? "?" + data : ""), "GET", false);
-                    return;
+                    String sep = actionUrl.contains("?") ? "&" : "?";
+                    navigate(data.isEmpty() ? actionUrl : (actionUrl + sep + data), "GET", false);
                 }
+                return;
             }
             if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
                 handleHyperlinkClick(e);
             } else if (e.getEventType() == HyperlinkEvent.EventType.ENTERED) {
-                lblStatus.setText(e.getURL() != null ? e.getURL().toString() : (e.getDescription() != null ? e.getDescription() : ""));
+                lblStatus.setText("Liên kết: " + (e.getURL() != null ? e.getURL().toString() : (e.getDescription() != null ? e.getDescription() : "")));
             } else if (e.getEventType() == HyperlinkEvent.EventType.EXITED) {
                 lblStatus.setText("Sẵn sàng");
             }
         });
         JScrollPane scrollHtml = new JScrollPane(htmlPane);
-        scrollHtml.getVerticalScrollBar().setUnitIncrement(14);
+        scrollHtml.getVerticalScrollBar().setUnitIncrement(16);
         contentContainer.add(scrollHtml, "HTML");
 
-        // 2.2 Image Pane
+        // Image Viewer
         lblImageDisplay = new JLabel("", JLabel.CENTER);
-        JScrollPane scrollImage = new JScrollPane(lblImageDisplay);
-        contentContainer.add(scrollImage, "IMAGE");
+        contentContainer.add(new JScrollPane(lblImageDisplay), "IMAGE");
 
-        // 2.3 Plain Text Pane
+        // Plain Text Viewer
         txtPlainText = new JTextArea();
         txtPlainText.setEditable(false);
-        txtPlainText.setFont(new Font("Monospaced", Font.PLAIN, 13));
-        JScrollPane scrollText = new JScrollPane(txtPlainText);
-        contentContainer.add(scrollText, "TEXT");
+        txtPlainText.setFont(new Font("Consolas", Font.PLAIN, 13));
+        txtPlainText.setBorder(BorderFactory.createEmptyBorder(12, 14, 12, 14));
+        contentContainer.add(new JScrollPane(txtPlainText), "TEXT");
 
-        // 2.4 Multimedia / Binary File Pane (.pdf, .mp3, .mp4, .wav...)
-        mediaPanel = new JPanel(new BorderLayout(10, 10));
-        mediaPanel.setBorder(BorderFactory.createEmptyBorder(40, 40, 40, 40));
-        mediaPanel.setBackground(Color.WHITE);
-
-        JPanel mediaCard = new JPanel(new BorderLayout(15, 15));
-        mediaCard.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(218, 220, 224), 1),
-                BorderFactory.createEmptyBorder(25, 25, 25, 25)
-        ));
-        mediaCard.setBackground(new Color(248, 249, 250));
-
-        lblMediaInfo = new JLabel("Tệp đa phương tiện / Dịch vụ Server", JLabel.CENTER);
-        lblMediaInfo.setFont(new Font("SansSerif", Font.PLAIN, 14));
-
-        JPanel mediaActions = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
-        mediaActions.setOpaque(false);
-        btnDownloadMedia = UiUtil.createColoredButton(" ⬇ Tải tệp này về máy (Download) ", new Color(11, 87, 208), Color.WHITE, 6);
-        btnDownloadMedia.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnDownloadMedia.addActionListener(e -> {
-            if (currentUrl != null && !currentUrl.isEmpty()) {
-                DownloadManager.startDownload(parentFrame, currentUrl);
-            }
-        });
-        mediaActions.add(btnDownloadMedia);
-
-        JButton btnOpenDirectly = UiUtil.createColoredButton(" ▶ Mở tệp ngay bằng máy tính ", new Color(19, 115, 51), Color.WHITE, 6);
-        btnOpenDirectly.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnOpenDirectly.addActionListener(e -> openLastMediaDirectly());
-        mediaActions.add(btnOpenDirectly);
-
-        mediaCard.add(lblMediaInfo, BorderLayout.CENTER);
-        mediaCard.add(mediaActions, BorderLayout.SOUTH);
-        mediaPanel.add(mediaCard, BorderLayout.NORTH);
-        contentContainer.add(mediaPanel, "MEDIA");
-
-        // 3. DEVTOOLS PANEL (Bottom)
+        // 3. CHROME DEVTOOLS PANEL (F12)
         devToolsPanel = createDevToolsPanel();
-        devToolsPanel.setPreferredSize(new Dimension(800, 240));
+        devToolsPanel.setPreferredSize(new Dimension(800, 230));
 
         mainSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, contentContainer, devToolsPanel);
-        mainSplit.setResizeWeight(0.7);
+        mainSplit.setResizeWeight(0.68);
         mainSplit.setDividerSize(0);
         devToolsPanel.setVisible(false);
 
         add(mainSplit, BorderLayout.CENTER);
 
-        // 4. STATUS BAR (Bottom)
+        // 4. STATUS BAR
         JPanel statusBar = new JPanel(new BorderLayout(8, 0));
         statusBar.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(218, 220, 224)),
-                BorderFactory.createEmptyBorder(4, 10, 4, 10)
+                BorderFactory.createEmptyBorder(4, 12, 4, 12)
         ));
         statusBar.setBackground(new Color(241, 243, 244));
 
         lblStatus = new JLabel("Sẵn sàng");
-        lblStatus.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        lblStatus.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 
         JPanel statusRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         statusRight.setOpaque(false);
 
         progressBar = new JProgressBar(0, 100);
-        progressBar.setPreferredSize(new Dimension(120, 14));
+        progressBar.setPreferredSize(new Dimension(130, 14));
         progressBar.setVisible(false);
 
-        lblProtocol = new JLabel("HTTP / Socket TCP");
-        lblProtocol.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        lblProtocol.setForeground(new Color(95, 99, 104));
+        lblProtocol = new JLabel("Giao thức: HTTP/1.1 TCP Socket");
+        lblProtocol.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lblProtocol.setForeground(new Color(26, 115, 232));
 
         statusRight.add(progressBar);
         statusRight.add(lblProtocol);
@@ -309,11 +300,14 @@ public class BrowserTab extends JPanel {
         JPanel p = new JPanel(new BorderLayout());
         p.setBorder(BorderFactory.createMatteBorder(2, 0, 0, 0, new Color(26, 115, 232)));
 
-        // Top info bar
         JPanel topInfo = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
         topInfo.setBackground(new Color(241, 243, 244));
 
-        badgeStatus = createBadge("STATUS", new Color(19, 115, 51));
+        JLabel lblDevTitle = new JLabel("Chrome DevTools (Network & HTTP Socket Inspector):");
+        lblDevTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        topInfo.add(lblDevTitle);
+
+        badgeStatus = createBadge("200 OK", new Color(19, 115, 51));
         badgeMethod = createBadge("GET", new Color(26, 115, 232));
         badgeIp = createBadge("IP: 127.0.0.1", new Color(60, 64, 67));
         badgeTime = createBadge("0 ms", new Color(60, 64, 67));
@@ -325,17 +319,17 @@ public class BrowserTab extends JPanel {
         topInfo.add(badgeTime);
         topInfo.add(badgeSize);
 
-        // Tabs
         JTabbedPane tabs = new JTabbedPane();
+        tabs.setFont(new Font("Segoe UI", Font.BOLD, 11));
         txtResHeaders = createCodeArea();
         txtReqHeaders = createCodeArea();
         txtPageSource = createCodeArea();
         txtDnsInfo = createCodeArea();
 
-        tabs.addTab("Response Headers", new JScrollPane(txtResHeaders));
-        tabs.addTab("Request Headers", new JScrollPane(txtReqHeaders));
-        tabs.addTab("Page Source (HTML/Body)", new JScrollPane(txtPageSource));
-        tabs.addTab("URL & DNS Details", new JScrollPane(txtDnsInfo));
+        tabs.addTab("HTTP Response Headers", new JScrollPane(txtResHeaders));
+        tabs.addTab("HTTP Request Packet (Socket)", new JScrollPane(txtReqHeaders));
+        tabs.addTab("Page Source (HTML / Body)", new JScrollPane(txtPageSource));
+        tabs.addTab("URL & DNS IP", new JScrollPane(txtDnsInfo));
 
         p.add(topInfo, BorderLayout.NORTH);
         p.add(tabs, BorderLayout.CENTER);
@@ -347,7 +341,7 @@ public class BrowserTab extends JPanel {
         l.setOpaque(true);
         l.setBackground(bg);
         l.setForeground(Color.WHITE);
-        l.setFont(new Font("SansSerif", Font.BOLD, 11));
+        l.setFont(new Font("Segoe UI", Font.BOLD, 11));
         l.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
         return l;
     }
@@ -355,58 +349,82 @@ public class BrowserTab extends JPanel {
     private JTextArea createCodeArea() {
         JTextArea area = new JTextArea();
         area.setEditable(false);
-        area.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        area.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+        area.setFont(new Font("Consolas", Font.PLAIN, 12));
+        area.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
         return area;
     }
 
     private JButton createToolButton(String text, String tooltip) {
-        JButton b = UiUtil.createOutlineButton(text, new Color(195, 205, 220), new Color(30, 41, 59));
+        JButton b = UiUtil.createOutlineButton(text, new Color(203, 213, 225), new Color(30, 41, 59));
         b.setToolTipText(tooltip);
         b.setFont(new Font("Segoe UI", Font.BOLD, 12));
         return b;
     }
 
     private void triggerNavigate() {
-        String url = txtAddress.getText().trim();
+        String rawInput = txtAddress.getText().trim();
         String method = (String) cbMethod.getSelectedItem();
 
-        if (url.isEmpty()) return;
+        if (rawInput.isEmpty()) return;
 
         if ("POST".equalsIgnoreCase(method)) {
-            // Mo hop thoai gui POST chuyen nghiep
-            PostDialog dlg = new PostDialog(parentFrame, url, res -> {
-                displayResponse(res);
-            });
+            String target = resolveInputToUrl(rawInput);
+            PostDialog dlg = new PostDialog(parentFrame, target, this::displayResponse);
             dlg.setVisible(true);
         } else {
-            navigate(url, method, false);
+            navigate(rawInput, method, false);
         }
     }
 
-    public void navigate(String targetUrl, String method, boolean isBackOrForward) {
-        if (targetUrl == null || targetUrl.trim().isEmpty()) return;
-        targetUrl = targetUrl.trim();
-
-        if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
-            targetUrl = "http://" + targetUrl;
+    private String resolveInputToUrl(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return WebBrowser.getHomeUrl();
+        }
+        String s = input.trim();
+        String baseHome = WebBrowser.getHomeUrl();
+        if (baseHome.endsWith("/")) {
+            baseHome = baseHome.substring(0, baseHome.length() - 1);
         }
 
-        if (!isBackOrForward && !currentUrl.isEmpty()) {
+        if (s.startsWith("http://") || s.startsWith("https://")) {
+            return s;
+        }
+        if (s.startsWith("/")) {
+            return baseHome + s;
+        }
+        boolean looksLikeUrl = !s.contains(" ")
+                && (s.startsWith("localhost") || s.startsWith("127.0.0.1") || s.contains(".") || s.contains(":"));
+        if (looksLikeUrl) {
+            return "http://" + s;
+        }
+        try {
+            return baseHome + "/search?q=" + URLEncoder.encode(s, StandardCharsets.UTF_8.name());
+        } catch (Exception e) {
+            return baseHome + "/search?q=" + s.replace(" ", "+");
+        }
+    }
+
+    public void navigate(String targetInput, String method, boolean isBackOrForward) {
+        if (targetInput == null || targetInput.trim().isEmpty()) return;
+        String targetUrl = resolveInputToUrl(targetInput);
+        String reqMethod = method != null ? method.toUpperCase() : "GET";
+
+        if (!isBackOrForward && !currentUrl.isEmpty() && !currentUrl.equals(targetUrl)) {
             backStack.push(currentUrl);
             forwardStack.clear();
         }
 
         currentUrl = targetUrl;
         txtAddress.setText(currentUrl);
+        cbMethod.setSelectedItem(reqMethod);
         updateNavButtons();
 
-        lblStatus.setText("Đang kết nối: " + currentUrl + " ...");
+        lblStatus.setText("Đang gửi " + reqMethod + " " + currentUrl + " qua giao thức HTTP/1.1...");
         progressBar.setVisible(true);
         progressBar.setIndeterminate(true);
 
         final String finalUrl = targetUrl;
-        final String finalMethod = method;
+        final String finalMethod = reqMethod;
 
         new Thread(() -> {
             try {
@@ -415,56 +433,77 @@ public class BrowserTab extends JPanel {
 
                 SwingUtilities.invokeLater(() -> {
                     progressBar.setVisible(false);
-                    lblStatus.setText("Đã tải xong (" + res.getStatusCode() + " " + res.getStatusMessage() + ")");
+                    lblProtocol.setText("Giao thức: " + res.getProtocolEngine() + " (" + res.getResponseTimeMs() + " ms)");
+                    lblStatus.setText("Hoàn tất: HTTP " + res.getStatusCode() + " " + res.getStatusMessage() + " - " + finalUrl);
                     displayResponse(res);
                 });
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(() -> {
                     progressBar.setVisible(false);
-                    lblStatus.setText("Lỗi: " + ex.getMessage());
+                    lblStatus.setText("Lỗi kết nối HTTP: " + ex.getMessage());
                     showErrorPage(finalUrl, ex.getMessage());
                 });
             }
         }).start();
     }
 
-    private boolean isDownloadableExtension(String url) {
-        return url.endsWith(".pdf") || url.endsWith(".mp3") || url.endsWith(".mp4")
-                || url.endsWith(".wav") || url.endsWith(".zip") || url.endsWith(".rar")
-                || url.endsWith(".tar.gz");
-    }
-
     public void displayResponse(HttpResponse res) {
-        this.lastResponse = res;
         this.currentUrl = res.getRequestUrl();
         txtAddress.setText(currentUrl);
 
-        // Cap nhat History
         String pageTitle = extractTitle(res);
         HistoryManager.add(currentUrl, pageTitle, res.getRequestMethod());
         if (titleChangeCallback != null) {
             titleChangeCallback.accept(pageTitle);
         }
 
-        // Cap nhat DevTools Inspector
         updateDevTools(res);
 
-        // Neu la phuong thuc HEAD thi chi can thong bao va hien thi DevTools headers
+        // 1. Nếu là phương thức HTTP HEAD -> hiển thị bảng phân tích HTTP Headers trực quan
         if ("HEAD".equalsIgnoreCase(res.getRequestMethod())) {
-            cardLayout.show(contentContainer, "TEXT");
-            txtPlainText.setText("=== KET QUA HTTP HEAD REQUEST ===\n\n"
-                    + "URL: " + res.getRequestUrl() + "\n"
-                    + "Status: " + res.getStatusCode() + " " + res.getStatusMessage() + "\n"
-                    + "Response Time: " + res.getResponseTimeMs() + " ms\n"
-                    + "Resolved IP: " + res.getResolvedIp() + "\n\n"
-                    + "--- HTTP HEADERS ---\n"
-                    + res.getRawHeadersString() + "\n\n"
-                    + "(Phuong thuc HEAD chi tra ve header ma khong tai phan than Body)");
+            cardLayout.show(contentContainer, "HTML");
+            StringBuilder rows = new StringBuilder();
+            for (Map.Entry<String, String> entry : res.getHeaders().entrySet()) {
+                rows.append("<tr>")
+                        .append("<td bgcolor='#F8FAFC'><font face='Consolas, Courier New' size='2'><b>")
+                        .append(escapeHtml(entry.getKey())).append("</b></font></td>")
+                        .append("<td><font face='Consolas, Courier New' size='2' color='#0F766E'>")
+                        .append(escapeHtml(entry.getValue())).append("</font></td>")
+                        .append("</tr>");
+            }
+            String headHtml = "<html><head><title>HTTP HEAD: " + escapeHtml(currentUrl) + "</title></head>"
+                    + "<body bgcolor='#F8F9FA' text='#202124' link='#1A73E8'>"
+                    + "<table width='92%' cellpadding='16' cellspacing='0' border='1' bordercolor='#DADCE0' bgcolor='#FFFFFF' align='center'>"
+                    + "<tr bgcolor='#EDE9FE'><td>"
+                    + "<font face='Arial' size='4' color='#5B21B6'><b>KẾT QUẢ KIỂM TRA PHƯƠNG THỨC HTTP HEAD</b></font><br>"
+                    + "<font face='Arial' size='2' color='#4C1D95'>Phương thức <b>HEAD</b> yêu cầu Server chỉ trả về <b>HTTP Status Line &amp; Response Headers</b> mà không truyền phần thân (Body = 0 bytes).</font>"
+                    + "</td></tr>"
+                    + "<tr><td>"
+                    + "<font face='Arial' size='2'>"
+                    + "<b>Địa chỉ URL mục tiêu:</b> <code>" + escapeHtml(res.getRequestUrl()) + "</code><br>"
+                    + "<b>Mã trạng thái (Status):</b> <font color='#137333'><b>HTTP/1.1 " + res.getStatusCode() + " " + escapeHtml(res.getStatusMessage()) + "</b></font><br>"
+                    + "<b>Địa chỉ IP phân giải (DNS):</b> <code>" + escapeHtml(res.getResolvedIp()) + "</code><br>"
+                    + "<b>Thời gian phản hồi (Latency):</b> <code>" + res.getResponseTimeMs() + " ms</code><br>"
+                    + "<b>Kích thước Body nhận về:</b> <code>" + res.getBodyBytes().length + " bytes (Đúng chuẩn HEAD)</code>"
+                    + "</font><br><br>"
+                    + "<font face='Arial' size='3'><b>Danh sách các trường HTTP Response Headers nhận được:</b></font><br><br>"
+                    + "<table width='100%' cellpadding='7' cellspacing='0' border='1' bordercolor='#CBD5E1'>"
+                    + "<tr bgcolor='#EFF6FF'>"
+                    + "<th align='left' width='32%'><font face='Arial' size='2' color='#1E40AF'>Tên Header</font></th>"
+                    + "<th align='left'><font face='Arial' size='2' color='#1E40AF'>Giá trị (Header Value)</font></th>"
+                    + "</tr>"
+                    + rows
+                    + "</table><br>"
+                    + "<a href='" + escapeHtml(res.getRequestUrl()) + "'><font face='Arial' size='2'><b>Mở trang này bằng phương thức HTTP GET</b></font></a>"
+                    + " &nbsp;&nbsp;|&nbsp;&nbsp; "
+                    + "<a href='" + WebBrowser.getHomeUrl() + "'><font face='Arial' size='2'><b>Về Trang chủ Google</b></font></a>"
+                    + "</td></tr></table></body></html>";
+            renderHtmlContent(headHtml, res.getRequestUrl());
             setDevToolsVisible(true);
             return;
         }
 
-        // Neu la Image
+        // 2. Nếu là Hình ảnh
         if (res.isImage()) {
             try {
                 ByteArrayInputStream bais = new ByteArrayInputStream(res.getBodyBytes());
@@ -477,46 +516,34 @@ public class BrowserTab extends JPanel {
             } catch (Exception ignored) {}
         }
 
-        // Neu la Audio / Video / PDF
-        if (res.isAudioOrVideoOrPdf()) {
-            cardLayout.show(contentContainer, "MEDIA");
-            String fileTypeTitle = "[ TỆP ĐA PHƯƠNG TIỆN ]";
-            String lower = currentUrl.toLowerCase();
-            if (lower.endsWith(".pdf")) fileTypeTitle = "[ TÀI LIỆU PDF ]";
-            else if (lower.endsWith(".mp3") || lower.endsWith(".wav")) fileTypeTitle = "[ ÂM THANH MP3 / AUDIO ]";
-            else if (lower.endsWith(".mp4")) fileTypeTitle = "[ VIDEO MP4 ]";
-
-            lblMediaInfo.setText("<html><center>"
-                    + "<div style='font-size:22px;color:#0B57D0;font-weight:bold;margin-bottom:8px;'>" + fileTypeTitle + "</div>"
-                    + "<h2 style='color:#1E293B;margin:5px;'>Dịch vụ Đa phương tiện Web Server</h2>"
-                    + "<p style='font-size:13px;'><b>Địa chỉ tệp:</b> " + res.getRequestUrl() + "</p>"
-                    + "<p style='font-size:13px;'><b>Loại nội dung (MIME Type):</b> " + res.getContentType() + "</p>"
-                    + "<p style='font-size:13px;'><b>Dung lượng:</b> " + formatBytes(res.getBodyBytes().length) + "</p>"
-                    + "<p style='color:#137333;font-size:13px;margin-top:10px;'><b>[✓] Đã tải thành công qua giao thức HTTP 200 OK.</b></p>"
-                    + "<p style='color:#5f6368;font-size:12px;'>Bạn có thể bấm <b>Tải về máy</b> hoặc bấm <b>Mở tệp ngay</b> để thưởng thức.</p>"
-                    + "</center></html>");
-            return;
-        }
-
-        // Neu la HTML
+        // 3. Nếu là HTML
         if (res.isHtml()) {
             cardLayout.show(contentContainer, "HTML");
-            String html = res.getStringBody();
-            // Tránh lỗi ChangedCharSetException nổi tiếng của Swing JEditorPane khi gặp thẻ meta charset
-            String cleanHtml = html.replaceAll("(?i)<meta\\s+[^>]*>", "");
-            try {
-                htmlPane.setText(cleanHtml);
-            } catch (Exception e) {
-                htmlPane.setText(html);
-            }
-            htmlPane.setCaretPosition(0);
+            renderHtmlContent(res.getStringBody(), res.getRequestUrl());
             return;
         }
 
-        // Mac dinh la Text/Plain hoac dinh dang khac
+        // 4. Văn bản thuần
         cardLayout.show(contentContainer, "TEXT");
         txtPlainText.setText(res.getStringBody());
         txtPlainText.setCaretPosition(0);
+    }
+
+    private void renderHtmlContent(String html, String baseUrlStr) {
+        String cleanHtml = html
+                .replaceAll("(?i)<meta\\s+[^>]*>", "")
+                .replaceAll("(?is)<script\\b[^>]*>.*?</script>", "");
+        try {
+            if (htmlPane.getDocument() instanceof HTMLDocument && baseUrlStr != null && !baseUrlStr.isEmpty()) {
+                ((HTMLDocument) htmlPane.getDocument()).setBase(new URL(baseUrlStr));
+            }
+        } catch (Exception ignored) {}
+        try {
+            htmlPane.setText(cleanHtml);
+        } catch (Exception e) {
+            htmlPane.setText(html);
+        }
+        htmlPane.setCaretPosition(0);
     }
 
     private void updateDevTools(HttpResponse res) {
@@ -524,9 +551,9 @@ public class BrowserTab extends JPanel {
         if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
             badgeStatus.setBackground(new Color(19, 115, 51));
         } else if (res.getStatusCode() >= 400) {
-            badgeStatus.setBackground(new Color(234, 67, 53));
+            badgeStatus.setBackground(new Color(220, 38, 38));
         } else {
-            badgeStatus.setBackground(new Color(242, 153, 0));
+            badgeStatus.setBackground(new Color(217, 119, 6));
         }
 
         badgeMethod.setText(" " + res.getRequestMethod() + " ");
@@ -535,14 +562,9 @@ public class BrowserTab extends JPanel {
         badgeSize.setText(" " + formatBytes(res.getBodyBytes().length) + " ");
 
         txtResHeaders.setText(res.getRawHeadersString());
-
-        StringBuilder reqH = new StringBuilder();
-        reqH.append(res.getRequestMethod()).append(" ").append(res.getRequestUrl()).append(" HTTP/1.1\n");
-        reqH.append("Host: ").append(res.getResolvedIp()).append("\n");
-        reqH.append("User-Agent: LTM-WebBrowser/1.0\n");
-        reqH.append("Accept: */*\n");
-        txtReqHeaders.setText(reqH.toString());
-
+        txtReqHeaders.setText(res.getRawRequestText() != null && !res.getRawRequestText().isEmpty()
+                ? res.getRawRequestText()
+                : (res.getRequestMethod() + " " + res.getRequestUrl() + " HTTP/1.1\nHost: " + res.getResolvedIp()));
         txtPageSource.setText(res.getStringBody());
 
         UrlDnsInfo info = UrlDnsInfo.analyze(res.getRequestUrl());
@@ -550,41 +572,47 @@ public class BrowserTab extends JPanel {
     }
 
     private void handleHyperlinkClick(HyperlinkEvent e) {
+        String target = null;
         if (e.getURL() != null) {
-            String href = e.getURL().toString();
-            navigate(href, "GET", false);
+            target = e.getURL().toString();
         } else if (e.getDescription() != null) {
             String desc = e.getDescription();
             try {
-                URL base = new URL(currentUrl);
-                URL resolved = new URL(base, desc);
-                navigate(resolved.toString(), "GET", false);
+                URL base = new URL(currentUrl.isEmpty() ? WebBrowser.getHomeUrl() : currentUrl);
+                target = new URL(base, desc).toString();
             } catch (Exception ex) {
-                navigate(desc, "GET", false);
+                target = resolveInputToUrl(desc);
+            }
+        }
+        if (target != null) {
+            if (target.toLowerCase().contains("download=true")) {
+                DownloadManager.quickDownload(parentFrame, target);
+            } else {
+                cbMethod.setSelectedItem("GET");
+                navigate(target, "GET", false);
             }
         }
     }
 
     private void showErrorPage(String url, String errorMessage) {
         cardLayout.show(contentContainer, "HTML");
-        String errorHtml = "<!DOCTYPE html><html><body style='font-family:Arial,sans-serif;padding:40px;background:#f8f9fa;text-align:center;'>"
-                + "<h1 style='color:#ea4335;font-size:36px;'>[!] Lỗi Tải Trang</h1>"
-                + "<p style='font-size:16px;'>Không thể kết nối đến máy chủ: <b>" + url + "</b></p>"
-                + "<div style='background:#ffffff;border:1px solid #dadce0;border-radius:6px;padding:15px;max-width:550px;margin:20px auto;text-align:left;'>"
-                + "<b>Chi tiết lỗi:</b> <code style='color:#d93025;'>" + errorMessage + "</code><br><br>"
-                + "<b>Gợi ý khắc phục:</b>"
-                + "<ul>"
-                + "<li>Kiểm tra xem Web Server nội bộ đã khởi động chưa (cổng 8080).</li>"
-                + "<li>Kiểm tra đường truyền mạng hoặc địa chỉ URL đã nhập.</li>"
-                + "<li>Vào menu 'Máy chủ' để khởi động HttpServer có sẵn trong dự án.</li>"
-                + "</ul></div>"
-                + "<a href='http://localhost:8080/' style='display:inline-block;padding:8px 16px;background:#1a73e8;color:white;text-decoration:none;border-radius:4px;'>Về Localhost:8080</a>"
-                + "</body></html>";
-        htmlPane.setText(errorHtml);
-        htmlPane.setCaretPosition(0);
+        String homeUrl = WebBrowser.getHomeUrl();
+        String errorHtml = "<html><body bgcolor='#F8F9FA' text='#202124' link='#1A73E8'>"
+                + "<table width='82%' cellpadding='24' cellspacing='0' border='1' bordercolor='#DADCE0' bgcolor='#FFFFFF' align='center'>"
+                + "<tr><td>"
+                + "<font face='Arial' size='5' color='#D93025'><b>Không thể truy cập trang web này</b></font><br><br>"
+                + "<font face='Arial' size='3'>Máy chủ tại <b>" + escapeHtml(url) + "</b> phản hồi lỗi hoặc không thể kết nối.</font><br><br>"
+                + "<font face='Consolas, Courier New' size='2' color='#5F6368'>Chi tiết kỹ thuật: " + escapeHtml(errorMessage) + "</font><br><br>"
+                + "<hr size='1' color='#E0E0E0'><br>"
+                + "<a href='" + homeUrl + "'><font face='Arial' size='3'><b>Quay về Trang chủ Google</b></font></a>"
+                + "</td></tr></table></body></html>";
+        renderHtmlContent(errorHtml, homeUrl);
     }
 
     private String extractTitle(HttpResponse res) {
+        if ("HEAD".equalsIgnoreCase(res.getRequestMethod())) {
+            return "HEAD: " + res.getStatusCode() + " (" + res.getRequestUrl() + ")";
+        }
         if (res.isHtml()) {
             String body = res.getStringBody();
             int start = body.toLowerCase().indexOf("<title>");
@@ -601,7 +629,7 @@ public class BrowserTab extends JPanel {
             }
             return u.getHost();
         } catch (Exception e) {
-            return "Trang web";
+            return "Thẻ Google";
         }
     }
 
@@ -639,9 +667,9 @@ public class BrowserTab extends JPanel {
     public void setDevToolsVisible(boolean visible) {
         this.devToolsVisible = visible;
         devToolsPanel.setVisible(visible);
-        mainSplit.setDividerSize(visible ? 5 : 0);
+        mainSplit.setDividerSize(visible ? 6 : 0);
         if (visible) {
-            mainSplit.setDividerLocation(0.65);
+            mainSplit.setDividerLocation(0.64);
         }
         revalidate();
         repaint();
@@ -651,60 +679,34 @@ public class BrowserTab extends JPanel {
         return currentUrl;
     }
 
-    private void openLastMediaDirectly() {
-        if (lastResponse == null || lastResponse.getBodyBytes() == null || lastResponse.getBodyBytes().length == 0) {
-            JOptionPane.showMessageDialog(parentFrame, "Chưa có dữ liệu tệp để mở.");
-            return;
-        }
-        try {
-            String ext = ".bin";
-            String lower = currentUrl.toLowerCase();
-            if (lower.endsWith(".pdf")) ext = ".pdf";
-            else if (lower.endsWith(".mp3")) ext = ".mp3";
-            else if (lower.endsWith(".mp4")) ext = ".mp4";
-            else if (lower.endsWith(".wav")) ext = ".wav";
-            else if (lower.endsWith(".png")) ext = ".png";
-            else if (lower.endsWith(".txt")) ext = ".txt";
-
-            java.io.File temp = java.io.File.createTempFile("ltm_preview_", ext);
-            temp.deleteOnExit();
-            java.nio.file.Files.write(temp.toPath(), lastResponse.getBodyBytes());
-            if (java.awt.Desktop.isDesktopSupported()) {
-                java.awt.Desktop.getDesktop().open(temp);
-            } else {
-                JOptionPane.showMessageDialog(parentFrame, "Đã lưu tạm tệp tại: " + temp.getAbsolutePath());
-            }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(parentFrame, "Không thể mở tệp tự động: " + ex.getMessage() + "\nHãy dùng nút Tải về máy.");
-        }
-    }
-
     public void sendPostRequest(String actionUrl, String formBody) {
-        if (!actionUrl.startsWith("http://") && !actionUrl.startsWith("https://")) {
-            actionUrl = "http://" + actionUrl;
+        String resolvedUrl = resolveInputToUrl(actionUrl);
+        if (!currentUrl.isEmpty() && !currentUrl.equals(resolvedUrl)) {
+            backStack.push(currentUrl);
+            forwardStack.clear();
         }
-        backStack.push(currentUrl);
-        forwardStack.clear();
-        currentUrl = actionUrl;
+        currentUrl = resolvedUrl;
         txtAddress.setText(currentUrl);
+        cbMethod.setSelectedItem("POST");
         updateNavButtons();
 
-        lblStatus.setText("Đang gửi HTTP POST: " + actionUrl + " ...");
+        lblStatus.setText("Đang gửi HTTP POST: " + currentUrl + " ...");
         progressBar.setVisible(true);
         progressBar.setIndeterminate(true);
 
-        final String finalUrl = actionUrl;
+        final String finalUrl = resolvedUrl;
         new Thread(() -> {
             try {
                 HttpRequest req = new HttpRequest(finalUrl, "POST");
                 req.setContentType("application/x-www-form-urlencoded");
                 if (formBody != null && !formBody.isEmpty()) {
-                    req.setBody(formBody.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    req.setBody(formBody.getBytes(StandardCharsets.UTF_8));
                 }
                 HttpResponse res = HttpEngine.execute(req);
                 SwingUtilities.invokeLater(() -> {
                     progressBar.setVisible(false);
-                    lblStatus.setText("Đã nhận phản hồi POST (" + res.getStatusCode() + " " + res.getStatusMessage() + ")");
+                    lblProtocol.setText("Giao thức: " + res.getProtocolEngine() + " (" + res.getResponseTimeMs() + " ms)");
+                    lblStatus.setText("Đã nhận phản hồi HTTP POST (" + res.getStatusCode() + " " + res.getStatusMessage() + ")");
                     displayResponse(res);
                 });
             } catch (Exception ex) {
@@ -715,6 +717,14 @@ public class BrowserTab extends JPanel {
                 });
             }
         }).start();
+    }
+
+    private String escapeHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;");
     }
 
     private String formatBytes(long bytes) {

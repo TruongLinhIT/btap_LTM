@@ -5,7 +5,6 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.GridLayout;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
@@ -25,64 +24,71 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 
+/**
+ * Công cụ tạo và gửi gói tin HTTP POST (PostDialog) trên Web Client.
+ */
 public class PostDialog extends JDialog {
 
     private JTextField txtUrl;
     private JComboBox<String> cbContentType;
     private DefaultTableModel paramsModel;
-    private JTable tblParams;
+    private JTable paramsTable;
     private JTextArea txtRawBody;
     private JTextArea txtResponseHeaders;
     private JTextArea txtResponseBody;
     private JLabel lblStatus;
-    private Consumer<HttpResponse> onResponseReceived;
+    private HttpResponse lastPostResponse;
+    private final Consumer<HttpResponse> onResponseReceived;
 
-    public PostDialog(JFrame parent, String initialUrl, Consumer<HttpResponse> onResponseReceived) {
-        super(parent, "Công cụ gửi HTTP POST Request (Tương tự Postman / Chrome Network)", true);
+    public PostDialog(JFrame parent, String defaultUrl, Consumer<HttpResponse> onResponseReceived) {
+        super(parent, "Công cụ gửi HTTP POST Request - Trình duyệt Web Client", false);
         this.onResponseReceived = onResponseReceived;
-        setSize(850, 620);
+        setSize(760, 580);
         setLocationRelativeTo(parent);
         setLayout(new BorderLayout(8, 8));
 
-        initUI(initialUrl != null && !initialUrl.isEmpty() ? initialUrl : "http://localhost:8080/api/submit");
+        String target = (defaultUrl != null && !defaultUrl.isEmpty() && defaultUrl.contains("/api/"))
+                ? defaultUrl
+                : (WebBrowser.getHomeUrl() + "api/submit");
+        initUI(target);
     }
 
     private void initUI(String defaultUrl) {
-        // TOP PANEL: URL + Content-Type + Send Button
+        // 1. TOP BAR: URL + SEND BUTTON
         JPanel topPanel = new JPanel(new BorderLayout(8, 8));
+        topPanel.setBackground(new Color(248, 249, 250));
         topPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(218, 220, 224)),
-                BorderFactory.createEmptyBorder(12, 12, 12, 12)
+                BorderFactory.createEmptyBorder(12, 14, 12, 14)
         ));
 
-        JPanel urlRow = new JPanel(new BorderLayout(6, 0));
-        JLabel lblMethod = new JLabel(" POST ");
-        lblMethod.setOpaque(true);
-        lblMethod.setBackground(new Color(234, 67, 53));
-        lblMethod.setForeground(Color.WHITE);
-        lblMethod.setFont(new Font("SansSerif", Font.BOLD, 13));
-        lblMethod.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+        JPanel urlRow = new JPanel(new BorderLayout(8, 0));
+        urlRow.setOpaque(false);
+        JLabel lblMethod = new JLabel(" [HTTP POST] URL: ");
+        lblMethod.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblMethod.setForeground(new Color(19, 115, 51));
 
         txtUrl = new JTextField(defaultUrl);
-        txtUrl.setFont(new Font("Monospaced", Font.PLAIN, 13));
+        txtUrl.setFont(new Font("Consolas", Font.PLAIN, 13));
 
-        JButton btnSend = UiUtil.createColoredButton(" Gửi HTTP POST ", new Color(11, 87, 208), Color.WHITE, 4);
-        btnSend.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        JButton btnSend = UiUtil.createColoredButton(" Gửi HTTP POST (Socket TCP) ", new Color(19, 115, 51), Color.WHITE, 6);
         btnSend.addActionListener(e -> executePost());
 
         urlRow.add(lblMethod, BorderLayout.WEST);
         urlRow.add(txtUrl, BorderLayout.CENTER);
         urlRow.add(btnSend, BorderLayout.EAST);
 
-        JPanel typeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
-        typeRow.add(new JLabel("Content-Type:"));
+        JPanel typeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        typeRow.setOpaque(false);
+        typeRow.add(new JLabel("Định dạng dữ liệu (Content-Type):"));
+
         String[] types = {
                 "application/x-www-form-urlencoded",
-                "application/json",
-                "text/plain",
-                "application/xml"
+                "application/json; charset=UTF-8",
+                "text/plain; charset=UTF-8"
         };
         cbContentType = new JComboBox<>(types);
+        cbContentType.setFont(new Font("Segoe UI", Font.BOLD, 12));
         cbContentType.addActionListener(e -> updateBodyPlaceholder());
         typeRow.add(cbContentType);
 
@@ -90,97 +96,112 @@ public class PostDialog extends JDialog {
         topPanel.add(typeRow, BorderLayout.SOUTH);
         add(topPanel, BorderLayout.NORTH);
 
-        // CENTER SPLIT PANE: Request Body (Top/Left) vs Response (Bottom/Right)
+        // 2. CENTER SPLIT: REQUEST BODY (TOP) & SERVER RESPONSE (BOTTOM)
         JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        splitPane.setResizeWeight(0.5);
+        splitPane.setResizeWeight(0.48);
 
-        // 1. REQUEST TABS
         JTabbedPane reqTabs = new JTabbedPane();
+        reqTabs.setFont(new Font("Segoe UI", Font.BOLD, 12));
 
-        // Tab Form Data (Key - Value)
-        JPanel formPanel = new JPanel(new BorderLayout(5, 5));
-        paramsModel = new DefaultTableModel(new Object[]{"Tên tham số (Key)", "Giá trị (Value)"}, 0);
-        paramsModel.addRow(new Object[]{"hoten", "Nguyen Van A"});
+        // Tab 1: Form Key-Value
+        JPanel formPanel = new JPanel(new BorderLayout(6, 6));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+        paramsModel = new DefaultTableModel(new Object[]{"Tên tham số (Key)", "Giá trị (Value - UTF-8)"}, 0);
+        paramsModel.addRow(new Object[]{"hoten", "Nguyễn Văn A"});
         paramsModel.addRow(new Object[]{"masv", "21IT001"});
-        paramsModel.addRow(new Object[]{"noidung", "Thu nghiem gui du lieu POST tu trinh duyet Java Client"});
+        paramsModel.addRow(new Object[]{"lop", "Lập Trình Mạng"});
+        paramsModel.addRow(new Object[]{"noidung", "Gửi dữ liệu qua giao thức HTTP POST"});
 
-        tblParams = new JTable(paramsModel);
-        tblParams.setRowHeight(24);
-        formPanel.add(new JScrollPane(tblParams), BorderLayout.CENTER);
+        paramsTable = new JTable(paramsModel);
+        paramsTable.setRowHeight(25);
+        paramsTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        formPanel.add(new JScrollPane(paramsTable), BorderLayout.CENTER);
 
-        JPanel btnParamsBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
-        JButton btnAddParam = new JButton("+ Thêm tham số");
-        btnAddParam.addActionListener(e -> paramsModel.addRow(new Object[]{"param", "value"}));
-        JButton btnDelParam = new JButton("- Xóa tham số chọn");
-        btnDelParam.addActionListener(e -> {
-            int row = tblParams.getSelectedRow();
+        JPanel tableBtnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
+        JButton btnAddRow = UiUtil.createOutlineButton("+ Thêm trường", new Color(203, 213, 225), new Color(26, 115, 232));
+        btnAddRow.addActionListener(e -> paramsModel.addRow(new Object[]{"tham_so_moi", "gia_tri"}));
+
+        JButton btnRemoveRow = UiUtil.createOutlineButton("- Xóa dòng chọn", new Color(203, 213, 225), new Color(185, 28, 28));
+        btnRemoveRow.addActionListener(e -> {
+            int row = paramsTable.getSelectedRow();
             if (row != -1) paramsModel.removeRow(row);
         });
-        JButton btnSyncToRaw = new JButton("Chuyển sang Raw Body");
-        btnSyncToRaw.addActionListener(e -> {
-            txtRawBody.setText(buildFormEncodedString());
-            reqTabs.setSelectedIndex(1);
-        });
-        btnParamsBar.add(btnAddParam);
-        btnParamsBar.add(btnDelParam);
-        btnParamsBar.add(btnSyncToRaw);
-        formPanel.add(btnParamsBar, BorderLayout.SOUTH);
+        tableBtnPanel.add(btnAddRow);
+        tableBtnPanel.add(btnRemoveRow);
+        formPanel.add(tableBtnPanel, BorderLayout.SOUTH);
 
-        reqTabs.addTab("Form UrlEncoded (Key-Value)", formPanel);
+        reqTabs.addTab("1. Tham số Biểu mẫu (Form Key-Value)", formPanel);
 
-        // Tab Raw Body
-        txtRawBody = new JTextArea();
-        txtRawBody.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        txtRawBody.setText("hoten=Nguyen+Van+A&masv=21IT001&noidung=Thu+nghiem+gui+POST");
-        reqTabs.addTab("Raw Body / JSON / Text", new JScrollPane(txtRawBody));
+        // Tab 2: Raw Body (JSON / Text)
+        JPanel rawPanel = new JPanel(new BorderLayout());
+        txtRawBody = new JTextArea("{\n  \"hoten\": \"Nguyễn Văn A\",\n  \"masv\": \"21IT001\",\n  \"noidung\": \"Kiểm thử JSON POST trên trình duyệt\"\n}");
+        txtRawBody.setFont(new Font("Consolas", Font.PLAIN, 13));
+        rawPanel.add(new JScrollPane(txtRawBody), BorderLayout.CENTER);
+        reqTabs.addTab("2. Dữ liệu thô (JSON / Raw Payload)", rawPanel);
 
         splitPane.setTopComponent(reqTabs);
 
-        // 2. RESPONSE TABS
-        JPanel resPanel = new JPanel(new BorderLayout());
-        JPanel resHeaderBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
-        lblStatus = new JLabel("Chưa gửi yêu cầu.");
-        lblStatus.setFont(new Font("SansSerif", Font.BOLD, 12));
-        resHeaderBar.add(new JLabel("Trạng thái Server: "));
+        // Bottom: Response
+        JPanel resPanel = new JPanel(new BorderLayout(4, 4));
+        resPanel.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
+
+        JPanel resHeaderBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
+        lblStatus = new JLabel("Sẵn sàng gửi HTTP POST...");
+        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        resHeaderBar.add(new JLabel("Phản hồi từ Server:"));
         resHeaderBar.add(lblStatus);
         resPanel.add(resHeaderBar, BorderLayout.NORTH);
 
         JTabbedPane resTabs = new JTabbedPane();
+        resTabs.setFont(new Font("Segoe UI", Font.BOLD, 12));
+
         txtResponseBody = new JTextArea();
         txtResponseBody.setEditable(false);
-        txtResponseBody.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        resTabs.addTab("Nội dung phản hồi (Body)", new JScrollPane(txtResponseBody));
+        txtResponseBody.setFont(new Font("Consolas", Font.PLAIN, 12));
+        resTabs.addTab("HTTP Response Body", new JScrollPane(txtResponseBody));
 
         txtResponseHeaders = new JTextArea();
         txtResponseHeaders.setEditable(false);
-        txtResponseHeaders.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        resTabs.addTab("HTTP Response Headers", new JScrollPane(txtResponseHeaders));
+        txtResponseHeaders.setFont(new Font("Consolas", Font.PLAIN, 12));
+        resTabs.addTab("HTTP Request & Response Headers", new JScrollPane(txtResponseHeaders));
 
         resPanel.add(resTabs, BorderLayout.CENTER);
         splitPane.setBottomComponent(resPanel);
+        splitPane.setPreferredSize(new Dimension(720, 420));
 
         add(splitPane, BorderLayout.CENTER);
 
-        // BOTTOM BAR: Close & View in Browser button
+        // 3. BOTTOM BAR
         JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
-        JButton btnViewInBrowser = new JButton("Hiển thị kết quả này lên tab Trình duyệt");
-        btnViewInBrowser.setEnabled(false);
-        JButton btnClose = new JButton("Đóng");
+        JButton btnViewInTab = UiUtil.createColoredButton(" Hiển thị kết quả lên Tab trình duyệt ", new Color(26, 115, 232), Color.WHITE, 6);
+        btnViewInTab.addActionListener(e -> {
+            if (lastPostResponse != null && onResponseReceived != null) {
+                onResponseReceived.accept(lastPostResponse);
+                setVisible(false);
+            } else {
+                executePost();
+            }
+        });
+
+        JButton btnClose = UiUtil.createOutlineButton("Đóng", new Color(203, 213, 225), new Color(30, 41, 59));
         btnClose.addActionListener(e -> setVisible(false));
 
-        bottomBar.add(btnViewInBrowser);
+        bottomBar.add(btnViewInTab);
         bottomBar.add(btnClose);
         add(bottomBar, BorderLayout.SOUTH);
     }
 
     private void updateBodyPlaceholder() {
         String type = (String) cbContentType.getSelectedItem();
-        if ("application/json".equals(type) && (txtRawBody.getText().isEmpty() || txtRawBody.getText().contains("="))) {
-            txtRawBody.setText("{\n  \"hoten\": \"Nguyen Van A\",\n  \"masv\": \"21IT001\",\n  \"noidung\": \"Kiem tra JSON POST\"\n}");
+        if (type != null && type.contains("json") && txtRawBody.getText().trim().isEmpty()) {
+            txtRawBody.setText("{\n  \"hoten\": \"Nguyễn Văn A\",\n  \"masv\": \"21IT001\",\n  \"noidung\": \"Kiểm thử JSON POST\"\n}");
         }
     }
 
     private String buildFormEncodedString() {
+        if (paramsTable.isEditing() && paramsTable.getCellEditor() != null) {
+            paramsTable.getCellEditor().stopCellEditing();
+        }
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < paramsModel.getRowCount(); i++) {
             Object k = paramsModel.getValueAt(i, 0);
@@ -200,14 +221,14 @@ public class PostDialog extends JDialog {
     private void executePost() {
         String url = txtUrl.getText().trim();
         if (url.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập URL!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập địa chỉ URL!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         String contentType = (String) cbContentType.getSelectedItem();
         byte[] bodyBytes;
 
-        if ("application/x-www-form-urlencoded".equals(contentType)) {
+        if (contentType != null && contentType.startsWith("application/x-www-form-urlencoded")) {
             String formStr = buildFormEncodedString();
             if (formStr.isEmpty()) {
                 formStr = txtRawBody.getText();
@@ -217,8 +238,8 @@ public class PostDialog extends JDialog {
             bodyBytes = txtRawBody.getText().getBytes(StandardCharsets.UTF_8);
         }
 
-        lblStatus.setText("Đang gửi yêu cầu POST...");
-        lblStatus.setForeground(Color.BLUE);
+        lblStatus.setText("Đang gửi gói tin HTTP POST qua Socket TCP...");
+        lblStatus.setForeground(new Color(26, 115, 232));
 
         new Thread(() -> {
             try {
@@ -227,28 +248,28 @@ public class PostDialog extends JDialog {
                 req.setBody(bodyBytes);
 
                 HttpResponse res = HttpEngine.execute(req);
+                lastPostResponse = res;
 
                 javax.swing.SwingUtilities.invokeLater(() -> {
-                    lblStatus.setText(res.getStatusCode() + " " + res.getStatusMessage() + " (" + res.getResponseTimeMs() + " ms)");
-                    if (res.getStatusCode() == 200) {
-                        lblStatus.setForeground(new Color(19, 115, 51));
-                    } else {
-                        lblStatus.setForeground(new Color(234, 67, 53));
-                    }
-                    txtResponseHeaders.setText(res.getRawHeadersString());
+                    lblStatus.setText("HTTP " + res.getStatusCode() + " " + res.getStatusMessage() + " (" + res.getResponseTimeMs() + " ms)");
+                    lblStatus.setForeground(res.getStatusCode() == 200 ? new Color(19, 115, 51) : new Color(220, 38, 38));
+
+                    txtResponseHeaders.setText("=== GÓI TIN REQUEST ĐÃ GỬI ===\n"
+                            + res.getRawRequestText()
+                            + "\n\n=== GÓI TIN RESPONSE HEADER TỪ SERVER ===\n"
+                            + res.getRawHeadersString());
                     txtResponseBody.setText(res.getStringBody());
 
                     HistoryManager.add(url, "POST Response: " + res.getStatusCode(), "POST");
-
                     if (onResponseReceived != null) {
                         onResponseReceived.accept(res);
                     }
                 });
             } catch (Exception ex) {
                 javax.swing.SwingUtilities.invokeLater(() -> {
-                    lblStatus.setText("Thất bại: " + ex.getMessage());
+                    lblStatus.setText("Lỗi kết nối: " + ex.getMessage());
                     lblStatus.setForeground(Color.RED);
-                    txtResponseBody.setText("Lỗi kết nối: " + ex.getMessage());
+                    txtResponseBody.setText("Không thể gửi POST: " + ex.getMessage());
                 });
             }
         }).start();

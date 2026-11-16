@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thông báo hệ thống - Nhà Hàng</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .error-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+        }
+        .error-card {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius-lg);
+            padding: 40px;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            animation: fadeIn 0.4s ease-out;
+        }
+        .error-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            display: inline-block;
+        }
+        .error-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+        .error-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 28px;
+            line-height: 1.6;
+        }
+        .error-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-card">
+            <div class="error-icon">⚠️</div>
+            <h1 class="error-title">Thông báo hệ thống</h1>
+            <p class="error-desc">Đã xảy ra sự cố không mong muốn trong hệ thống. Vui lòng thử lại sau hoặc liên hệ quản trị viên!</p>
+            <div class="error-actions">
+                <button type="button" class="btn btn-outline" onclick="window.history.back()">⬅️ Quay lại</button>
+                <a href="/login" class="btn btn-primary">🏠 Trang chủ</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

@@ -4,7 +4,6 @@ import http1.httpServer;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -12,11 +11,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
-import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
@@ -33,63 +32,64 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 /**
- * TRINH DUYET WEB CLIENT (BROWSER) - MON HOC LAP TRINH MANG
- * Giao dien va tinh nang tuong tu Chrome hoac Coc Coc:
- * - Da the (Multi-tabs) voi nut them the (+) va dong the (x)
- * - Thanh dia chi thong minh, cac nut Back, Forward, Reload, Home
- * - Ho tro day du cac phuong thuc HTTP: GET, HEAD, POST (co builder)
- * - Quan ly Lich su duyet web (History) tim kiem va luu tru
- * - Quan ly Tai xuong (Download Manager) voi tien do va mo file (.pdf, .mp3, .mp4, ...)
- * - Tich hop Developer Tools (F12) kiem tra HTTP Headers, Status, Latency
- * - Tich hop module phan tich URL & DNS IP (ke thua tu url.diachi va url.inet)
- * - Tich hop san Server Controller khoi dong Web Server cong 8080 ngay trong trinh duyet
+ * TRÌNH DUYỆT WEB CLIENT (BROWSER) TƯƠNG TỰ CHROME / CỐC CỐC
+ * - Giao thức HTTP/1.1 cài đặt trực tiếp trên TCP Socket (java.net.Socket)
+ * - Đầy đủ phương thức: GET, HEAD, POST
+ * - Quản lý Lịch sử duyệt web (History - Ctrl+H)
+ * - Quản lý Tải xuống (Download Manager - Ctrl+J)
+ * - Đa thẻ (Multi-tabs), Thanh địa chỉ & Tìm kiếm Google (Omnibox), Dấu trang (Bookmarks), DevTools (F12)
  */
 public class WebBrowser extends JFrame {
 
+    private static volatile int serverPort = httpServer.DEFAULT_PORT;
+
+    public static int getServerPort() {
+        return serverPort;
+    }
+
+    public static String getHomeUrl() {
+        return "http://localhost:" + serverPort + "/";
+    }
+
     private JTabbedPane tabbedPane;
     private JPanel bookmarkBar;
-    private List<BrowserTab> tabs = new ArrayList<>();
-    private Thread serverThread = null;
+    private final List<BrowserTab> tabs = new ArrayList<>();
     private ServerSocket activeServerSocket = null;
-    private JLabel lblServerStatus;
 
     public WebBrowser() {
-        super("LTM Web Browser - Trình duyệt mạng (Tương tự Chrome / Cốc Cốc)");
+        super("Google Chrome / Cốc Cốc - LTM Web Client Browser (HTTP/1.1: GET, HEAD, POST, History, Download)");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1100, 750);
-        setMinimumSize(new Dimension(800, 500));
+        setSize(1160, 780);
+        setMinimumSize(new Dimension(860, 540));
         setLocationRelativeTo(null);
+
+        startLocalServer();
 
         initMenuBar();
         initUI();
         registerShortcuts();
 
-        // 1. Khởi động Web Server trước
-        startLocalServer();
-
-        // 2. Chờ một chút để Server sẵn sàng cổng 8080
         try {
-            Thread.sleep(200);
+            Thread.sleep(100);
         } catch (InterruptedException ignored) {}
 
-        // 3. Mở thẻ mặc định trang chủ
-        addNewTab("http://localhost:8080/");
+        addNewTab(getHomeUrl());
     }
 
     private void initMenuBar() {
         JMenuBar menuBar = new JMenuBar();
 
-        // 1. MENU TEP (File)
-        JMenu menuFile = new JMenu("Tệp (File)");
-        JMenuItem itemNewTab = new JMenuItem("Thẻ mới (New Tab)");
+        // 1. MENU TRÌNH DUYỆT
+        JMenu menuFile = new JMenu("Trình duyệt (Browser)");
+        JMenuItem itemNewTab = new JMenuItem("Thẻ Google mới (New Tab)");
         itemNewTab.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_T, ActionEvent.CTRL_MASK));
-        itemNewTab.addActionListener(e -> addNewTab("http://localhost:8080/"));
+        itemNewTab.addActionListener(e -> addNewTab(getHomeUrl()));
 
         JMenuItem itemCloseTab = new JMenuItem("Đóng thẻ hiện tại (Close Tab)");
         itemCloseTab.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, ActionEvent.CTRL_MASK));
         itemCloseTab.addActionListener(e -> closeCurrentTab());
 
-        JMenuItem itemExit = new JMenuItem("Thoát");
+        JMenuItem itemExit = new JMenuItem("Thoát trình duyệt");
         itemExit.addActionListener(e -> System.exit(0));
 
         menuFile.add(itemNewTab);
@@ -98,24 +98,24 @@ public class WebBrowser extends JFrame {
         menuFile.add(itemExit);
         menuBar.add(menuFile);
 
-        // 2. MENU HTTP METHODS
-        JMenu menuHttp = new JMenu("Phương thức HTTP");
-        JMenuItem itemGet = new JMenuItem("Thực hiện HTTP GET");
+        // 2. MENU GIAO THỨC HTTP (GET, HEAD, POST)
+        JMenu menuHttp = new JMenu("Giao thức HTTP (GET / HEAD / POST)");
+        JMenuItem itemGet = new JMenuItem("Thực hiện HTTP GET (Tải trang hiện tại)");
         itemGet.addActionListener(e -> {
             BrowserTab t = getActiveTab();
             if (t != null) t.navigate(t.getCurrentUrl(), "GET", false);
         });
 
-        JMenuItem itemHead = new JMenuItem("Thực hiện HTTP HEAD (Chỉ lấy Header)");
+        JMenuItem itemHead = new JMenuItem("Thực hiện HTTP HEAD (Chỉ lấy HTTP Response Headers)");
         itemHead.addActionListener(e -> {
             BrowserTab t = getActiveTab();
             if (t != null) t.navigate(t.getCurrentUrl(), "HEAD", false);
         });
 
-        JMenuItem itemPost = new JMenuItem("Mở công cụ gửi HTTP POST (Post Dialog)...");
+        JMenuItem itemPost = new JMenuItem("Mở công cụ gửi HTTP POST (Post Request Builder)...");
         itemPost.addActionListener(e -> {
             BrowserTab t = getActiveTab();
-            String u = t != null ? t.getCurrentUrl() : "http://localhost:8080/api/submit";
+            String u = getHomeUrl() + "api/submit";
             PostDialog dlg = new PostDialog(this, u, res -> {
                 if (t != null) t.displayResponse(res);
             });
@@ -127,8 +127,8 @@ public class WebBrowser extends JFrame {
         menuHttp.add(itemPost);
         menuBar.add(menuHttp);
 
-        // 3. MENU CONG CU (Tools)
-        JMenu menuTools = new JMenu("Công cụ (Tools)");
+        // 3. MENU LỊCH SỬ & TẢI XUỐNG (HISTORY & DOWNLOAD)
+        JMenu menuTools = new JMenu("Lịch sử & Tải xuống");
 
         JMenuItem itemHistory = new JMenuItem("Lịch sử duyệt web (History)");
         itemHistory.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_H, ActionEvent.CTRL_MASK));
@@ -140,29 +140,38 @@ public class WebBrowser extends JFrame {
             dlg.setVisible(true);
         });
 
-        JMenuItem itemDownloads = new JMenuItem("Trình quản lý tải xuống (Downloads)");
+        JMenuItem itemDownloads = new JMenuItem("Trình quản lý Tải xuống (Downloads)");
         itemDownloads.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_J, ActionEvent.CTRL_MASK));
         itemDownloads.addActionListener(e -> DownloadManager.showManagerDialog(this));
 
-        JMenuItem itemDns = new JMenuItem("Phân tích URL & DNS IP (url.diachi & url.inet)");
+        JMenuItem itemDownloadCurrent = new JMenuItem("Lưu trang hiện tại về máy (Save Page As...)");
+        itemDownloadCurrent.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, ActionEvent.CTRL_MASK));
+        itemDownloadCurrent.addActionListener(e -> {
+            BrowserTab t = getActiveTab();
+            if (t != null) DownloadManager.startDownload(this, t.getCurrentUrl());
+        });
+
+        JMenuItem itemDns = new JMenuItem("Phân tích URL & Phân giải DNS IP (url.diachi & url.inet)");
         itemDns.addActionListener(e -> {
             BrowserTab t = getActiveTab();
-            String u = t != null ? t.getCurrentUrl() : "http://vku.udn.vn";
+            String u = t != null ? t.getCurrentUrl() : getHomeUrl();
             new DnsInspectorDialog(this, u).setVisible(true);
         });
 
-        JMenuItem itemDevTools = new JMenuItem("Bật/Tắt DevTools HTTP Inspector");
+        JMenuItem itemDevTools = new JMenuItem("Bật/Tắt Chrome DevTools (Network & HTTP Inspector)");
         itemDevTools.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F12, 0));
         itemDevTools.addActionListener(e -> {
             BrowserTab t = getActiveTab();
             if (t != null) t.toggleDevTools();
         });
 
-        JCheckBoxMenuItem itemSocketMode = new JCheckBoxMenuItem("Ưu tiên Socket TCP thuan (LTM Engine)", HttpEngine.isUseRawSocketForHttp());
+        JCheckBoxMenuItem itemSocketMode = new JCheckBoxMenuItem(
+                "Ưu tiên kết nối TCP Socket thuần cho HTTP/1.1", HttpEngine.isUseRawSocketForHttp());
         itemSocketMode.addActionListener(e -> HttpEngine.setUseRawSocketForHttp(itemSocketMode.isSelected()));
 
         menuTools.add(itemHistory);
         menuTools.add(itemDownloads);
+        menuTools.add(itemDownloadCurrent);
         menuTools.addSeparator();
         menuTools.add(itemDns);
         menuTools.add(itemDevTools);
@@ -170,36 +179,24 @@ public class WebBrowser extends JFrame {
         menuTools.add(itemSocketMode);
         menuBar.add(menuTools);
 
-        // 4. MENU MAY CHU (Web Server)
-        JMenu menuServer = new JMenu("Máy chủ (Web Server)");
-        JMenuItem itemStartServer = new JMenuItem("Khởi động Web Server (Cổng 8080)");
-        itemStartServer.addActionListener(e -> startLocalServer());
+        // 4. MENU KIỂM THỬ & TRỢ GIÚP
+        JMenu menuHelp = new JMenu("Kiểm thử & Trợ giúp");
+        JMenuItem itemAutoTest = new JMenuItem("Chạy Kiểm thử Tự động Web Client (8/8 Tiêu chí)");
+        itemAutoTest.addActionListener(e -> runAutoTest());
 
-        JMenuItem itemStopServer = new JMenuItem("Dừng Web Server");
-        itemStopServer.addActionListener(e -> stopLocalServer());
+        JMenuItem itemAbout = new JMenuItem("Thông tin Trình duyệt Web Client");
+        itemAbout.addActionListener(e -> JOptionPane.showMessageDialog(this,
+                "=== TRÌNH DUYỆT WEB CLIENT (TƯƠNG TỰ CHROME / CỐC CỐC) ===\n\n"
+                        + "1. Giao thức HTTP/1.1 cài đặt trực tiếp trên TCP Socket (java.net.Socket).\n"
+                        + "2. Hỗ trợ đầy đủ 3 phương thức: GET, HEAD, POST.\n"
+                        + "3. Tích hợp Trang chủ & Tìm kiếm Google (GET /search?q=...).\n"
+                        + "4. Quản lý Lịch sử duyệt web (History - Ctrl+H): Lưu vết, lọc & tìm kiếm.\n"
+                        + "5. Quản lý Tải xuống (Downloads - Ctrl+J): Tải trang web / tài liệu qua HTTP Socket.\n"
+                        + "6. Đa thẻ (Multi-tabs), Dấu trang (Bookmarks), Chrome DevTools (F12).",
+                "Giới thiệu Web Client Browser", JOptionPane.INFORMATION_MESSAGE));
 
-        menuServer.add(itemStartServer);
-        menuServer.add(itemStopServer);
-        menuBar.add(menuServer);
-
-        // 5. MENU TRO GIUP (Help)
-        JMenu menuHelp = new JMenu("Trợ giúp (Help)");
-        JMenuItem itemAbout = new JMenuItem("Thông tin đồ án LTM");
-        itemAbout.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this,
-                    "=== ĐỒ ÁN MÔN HỌC LẬP TRÌNH MẠNG ===\n" +
-                            "Đề tài: Web Client (Browser) & Web Server\n\n" +
-                            "CÁC TÍNH NĂNG ĐÃ TRIỂN KHAI HOÀN CHỈNH:\n" +
-                            "1. Giao thức HTTP: Đầy đủ GET, HEAD, POST.\n" +
-                            "2. Đa phương tiện & Dịch vụ Server: .pdf, .mp3, .mp4, .png, .wav, .txt, .html.\n" +
-                            "3. Lịch sử duyệt web (History): Tìm kiếm, lưu vết, mở lại.\n" +
-                            "4. Tải xuống (Download): Tiến độ tải %, mở tệp, mở thư mục.\n" +
-                            "5. Đa thẻ (Tabs): Đóng/mở thẻ như Chrome/Cốc Cốc.\n" +
-                            "6. Developer Tools (F12): Xem HTTP Headers, Status, Latency.\n" +
-                            "7. Kế thừa url.diachi & url.inet: Phân tích URL và DNS InetAddress.\n" +
-                            "8. Động cơ mạng: Cả Socket TCP thuần và HttpURLConnection.",
-                    "Giới thiệu LTM Web Browser", JOptionPane.INFORMATION_MESSAGE);
-        });
+        menuHelp.add(itemAutoTest);
+        menuHelp.addSeparator();
         menuHelp.add(itemAbout);
         menuBar.add(menuHelp);
 
@@ -209,91 +206,26 @@ public class WebBrowser extends JFrame {
     private void initUI() {
         JPanel mainContainer = new JPanel(new BorderLayout());
 
-        JPanel topHeader = new JPanel();
-        topHeader.setLayout(new javax.swing.BoxLayout(topHeader, javax.swing.BoxLayout.Y_AXIS));
+        // THANH DẤU TRANG & LỐI TẮT TRÌNH DUYỆT (BOOKMARK BAR)
+        JPanel topBarWrapper = new JPanel(new BorderLayout(8, 0));
+        topBarWrapper.setBackground(new Color(241, 243, 244));
+        topBarWrapper.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(218, 220, 224)),
+                BorderFactory.createEmptyBorder(4, 8, 4, 8)
+        ));
 
-        // 1. THANH KIỂM THỬ NHANH CÁC TIÊU CHÍ ĐỀ BÀI (Quick Testing Bar)
-        JPanel quickTestBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 4));
-        quickTestBar.setBackground(new Color(237, 242, 247));
-        quickTestBar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(203, 213, 225)));
+        bookmarkBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
+        bookmarkBar.setOpaque(false);
 
-        // Nút Auto Test toàn bộ 12 tiêu chí
-        JButton btnAutoTest = UiUtil.createColoredButton(" [TEST TOÀN BỘ 12/12] ", new Color(11, 87, 208), Color.WHITE, 6);
-        btnAutoTest.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnAutoTest.setToolTipText("Chạy tự động kiểm thử toàn bộ 12 tiêu chí và xuất báo cáo kết quả");
-        btnAutoTest.addActionListener(e -> runAutoTest());
-        quickTestBar.add(btnAutoTest);
+        addBookmarkButton("Trang chủ Google", getHomeUrl());
+        addBookmarkButton("Tìm kiếm Google (GET)", getHomeUrl() + "search?q=Giao+thuc+HTTP+GET+HEAD+POST");
+        addBookmarkButton("Biểu mẫu HTTP POST", getHomeUrl() + "post_test.html");
+        addBookmarkButton("Tài liệu HTTP/1.1", getHomeUrl() + "about_http.html");
+        addBookmarkButton("Example.com", "http://example.com");
+        addBookmarkButton("CERN (Web đầu tiên)", "http://info.cern.ch");
 
-        JLabel lblSep1 = new JLabel("  |  HTTP:");
-        lblSep1.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lblSep1.setForeground(new Color(71, 85, 105));
-        quickTestBar.add(lblSep1);
-
-        addQuickButton(quickTestBar, "[GET] Trang chủ", "Thực hiện HTTP GET tải trang chủ", () -> {
-            BrowserTab t = getActiveTab();
-            if (t != null) t.navigate("http://localhost:8080/", "GET", false);
-        });
-
-        addQuickButton(quickTestBar, "[HEAD] Soi Header", "Thực hiện HTTP HEAD soi Header", () -> {
-            BrowserTab t = getActiveTab();
-            if (t != null) t.navigate("http://localhost:8080/", "HEAD", false);
-        });
-
-        addQuickButton(quickTestBar, "[POST] Gửi Form", "Thực hiện HTTP POST gửi biểu mẫu", () -> {
-            BrowserTab t = getActiveTab();
-            String u = t != null ? t.getCurrentUrl() : "http://localhost:8080/api/submit";
-            PostDialog dlg = new PostDialog(this, u, res -> {
-                if (t != null) t.displayResponse(res);
-            });
-            dlg.setVisible(true);
-        });
-
-        JLabel lblSep2 = new JLabel("  |  Dịch vụ:");
-        lblSep2.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lblSep2.setForeground(new Color(71, 85, 105));
-        quickTestBar.add(lblSep2);
-
-        addQuickButton(quickTestBar, "[PDF] Tài liệu", "Mở tài liệu PDF", () -> openUrl("http://localhost:8080/sample.pdf"));
-        addQuickButton(quickTestBar, "[MP3] Âm thanh", "Mở tệp âm thanh MP3", () -> openUrl("http://localhost:8080/sample.mp3"));
-        addQuickButton(quickTestBar, "[MP4] Video", "Mở tệp video MP4", () -> openUrl("http://localhost:8080/sample.mp4"));
-        addQuickButton(quickTestBar, "[PNG] Hình ảnh", "Mở hình ảnh PNG", () -> openUrl("http://localhost:8080/sample.png"));
-        addQuickButton(quickTestBar, "[TXT] Văn bản", "Mở tệp văn bản TXT", () -> openUrl("http://localhost:8080/sample.txt"));
-
-        JLabel lblSep3 = new JLabel("  |  Tiện ích:");
-        lblSep3.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lblSep3.setForeground(new Color(71, 85, 105));
-        quickTestBar.add(lblSep3);
-
-        addQuickButton(quickTestBar, "Lịch sử (History)", "Xem Lịch sử duyệt web (Ctrl+H)", () -> {
-            new HistoryDialog(this, url -> openUrl(url)).setVisible(true);
-        });
-
-        addQuickButton(quickTestBar, "Tải xuống (Downloads)", "Xem Trình quản lý Tải xuống (Ctrl+J)", () -> {
-            DownloadManager.showManagerDialog(this);
-        });
-
-        addQuickButton(quickTestBar, "DevTools (F12)", "Bật/Tắt công cụ F12 soi gói tin", () -> {
-            BrowserTab t = getActiveTab();
-            if (t != null) t.toggleDevTools();
-        });
-
-        topHeader.add(quickTestBar);
-
-        // 2. THANH DAU TRANG (Bookmark Bar tuong tu Chrome/Coc Coc)
-        bookmarkBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 3));
-        bookmarkBar.setBackground(new Color(241, 243, 244));
-        bookmarkBar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(218, 220, 224)));
-
-        addBookmarkButton("Trang chủ (8080)", "http://localhost:8080/");
-        addBookmarkButton("sample.pdf", "http://localhost:8080/sample.pdf");
-        addBookmarkButton("sample.mp3", "http://localhost:8080/sample.mp3");
-        addBookmarkButton("sample.mp4", "http://localhost:8080/sample.mp4");
-        addBookmarkButton("sample.png", "http://localhost:8080/sample.png");
-        addBookmarkButton("sample.txt", "http://localhost:8080/sample.txt");
-        addBookmarkButton("Cổng VKU", "http://vku.udn.vn");
-
-        JButton btnAddBookmark = UiUtil.createOutlineButton("+ Thêm dấu trang", new Color(195, 205, 220), new Color(71, 85, 105));
-        btnAddBookmark.setToolTipText("Thêm trang web hiện tại vào danh sách dấu trang");
+        JButton btnAddBookmark = UiUtil.createOutlineButton("+ Lưu dấu trang", new Color(195, 205, 220), new Color(26, 115, 232));
+        btnAddBookmark.setToolTipText("Lưu trang hiện tại vào thanh dấu trang của trình duyệt");
         btnAddBookmark.addActionListener(e -> {
             BrowserTab t = getActiveTab();
             if (t != null) {
@@ -307,41 +239,30 @@ public class WebBrowser extends JFrame {
         });
         bookmarkBar.add(btnAddBookmark);
 
-        // Nhan trang thai Server tren thanh Bookmark
-        lblServerStatus = new JLabel(" |  Web Server: Chưa chạy");
-        lblServerStatus.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lblServerStatus.setForeground(new Color(100, 116, 139));
-        bookmarkBar.add(lblServerStatus);
+        JPanel rightQuick = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 2));
+        rightQuick.setOpaque(false);
 
-        JButton btnToggleServer = UiUtil.createOutlineButton("Bật Server 8080", new Color(180, 195, 215), new Color(15, 23, 42));
-        btnToggleServer.addActionListener(e -> {
-            if (activeServerSocket == null) {
-                startLocalServer();
-                btnToggleServer.setText("Tắt Server");
-            } else {
-                stopLocalServer();
-                btnToggleServer.setText("Bật Server 8080");
-            }
-        });
-        bookmarkBar.add(btnToggleServer);
+        JButton btnNewTab = UiUtil.createColoredButton(" + Thẻ mới (Ctrl+T) ", new Color(26, 115, 232), Color.WHITE, 6);
+        btnNewTab.setToolTipText("Mở thêm một thẻ trình duyệt mới");
+        btnNewTab.addActionListener(e -> addNewTab(getHomeUrl()));
 
-        topHeader.add(bookmarkBar);
+        JButton btnAutoTest = UiUtil.createColoredButton(" Tự động kiểm thử (8/8) ", new Color(19, 115, 51), Color.WHITE, 6);
+        btnAutoTest.setToolTipText("Chạy tự động kiểm thử 8 tiêu chí của Web Client Browser");
+        btnAutoTest.addActionListener(e -> runAutoTest());
 
-        mainContainer.add(topHeader, BorderLayout.NORTH);
+        rightQuick.add(btnNewTab);
+        rightQuick.add(btnAutoTest);
 
-        // 2. TABBED PANE (Multi-tabs)
+        topBarWrapper.add(bookmarkBar, BorderLayout.CENTER);
+        topBarWrapper.add(rightQuick, BorderLayout.EAST);
+
+        mainContainer.add(topBarWrapper, BorderLayout.NORTH);
+
         tabbedPane = new JTabbedPane();
-        tabbedPane.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        tabbedPane.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 
         mainContainer.add(tabbedPane, BorderLayout.CENTER);
         setContentPane(mainContainer);
-    }
-
-    private void addQuickButton(JPanel panel, String text, String tooltip, Runnable action) {
-        JButton btn = UiUtil.createOutlineButton(text, new Color(195, 205, 220), new Color(15, 23, 42));
-        btn.setToolTipText(tooltip);
-        btn.addActionListener(e -> action.run());
-        panel.add(btn);
     }
 
     private void openUrl(String url) {
@@ -357,14 +278,7 @@ public class WebBrowser extends JFrame {
         JButton b = UiUtil.createOutlineButton(title, new Color(210, 218, 228), new Color(30, 41, 59));
         b.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         b.setToolTipText(url);
-        b.addActionListener(e -> {
-            BrowserTab t = getActiveTab();
-            if (t != null) {
-                t.navigate(url, "GET", false);
-            } else {
-                addNewTab(url);
-            }
-        });
+        b.addActionListener(e -> openUrl(url));
         bookmarkBar.add(b);
     }
 
@@ -380,301 +294,243 @@ public class WebBrowser extends JFrame {
         });
         tabHolder[0] = tab;
         tabs.add(tab);
-        tabbedPane.addTab("Đang tải...", tab);
+        tabbedPane.addTab("Thẻ mới", tab);
         int newIdx = tabbedPane.getTabCount() - 1;
-        tabbedPane.setTabComponentAt(newIdx, createTabHeaderComponent(tab, "Trang mới"));
+        tabbedPane.setTabComponentAt(newIdx, createTabHeaderComponent(tab, "Google - Thẻ mới"));
         tabbedPane.setSelectedIndex(newIdx);
     }
 
     private Component createTabHeaderComponent(BrowserTab tab, String initialTitle) {
-        JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
+        JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
         header.setOpaque(false);
 
         JLabel lblTitle = new JLabel(initialTitle);
-        lblTitle.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblTitle.setForeground(new Color(32, 33, 36));
 
-        JButton btnClose = new JButton("×");
-        btnClose.setFont(new Font("SansSerif", Font.BOLD, 13));
+        JButton btnClose = new JButton(" × ");
+        btnClose.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnClose.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 4));
         btnClose.setContentAreaFilled(false);
         btnClose.setFocusPainted(false);
-        btnClose.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnClose.setToolTipText("Đóng thẻ này");
-        btnClose.addActionListener(e -> closeTab(tab));
+        btnClose.setForeground(new Color(95, 99, 104));
+        btnClose.setToolTipText("Đóng thẻ này (Ctrl+W)");
+        btnClose.addActionListener(e -> {
+            int idx = tabbedPane.indexOfComponent(tab);
+            if (idx != -1) {
+                closeTabAt(idx);
+            }
+        });
 
         header.add(lblTitle);
         header.add(btnClose);
-
         return header;
     }
 
-    private void updateTabHeader(int index, String newTitle) {
-        if (newTitle == null || newTitle.isEmpty()) newTitle = "Trang web";
-        if (newTitle.length() > 18) {
-            newTitle = newTitle.substring(0, 15) + "...";
+    private void updateTabHeader(int index, String title) {
+        if (title != null && title.length() > 26) {
+            title = title.substring(0, 23) + "...";
         }
-        Component comp = tabbedPane.getTabComponentAt(index);
-        if (comp instanceof JPanel) {
-            JPanel p = (JPanel) comp;
+        Component c = tabbedPane.getTabComponentAt(index);
+        if (c instanceof JPanel) {
+            JPanel p = (JPanel) c;
             if (p.getComponentCount() > 0 && p.getComponent(0) instanceof JLabel) {
-                ((JLabel) p.getComponent(0)).setText(newTitle);
+                ((JLabel) p.getComponent(0)).setText(title != null ? title : "Thẻ Google");
             }
         }
     }
 
-    public void closeTab(BrowserTab tab) {
-        int idx = tabbedPane.indexOfComponent(tab);
-        if (idx != -1) {
-            tabbedPane.remove(idx);
-            tabs.remove(tab);
-        }
-        if (tabbedPane.getTabCount() == 0) {
-            addNewTab("http://localhost:8080/");
-        }
-    }
-
     public void closeCurrentTab() {
-        BrowserTab t = getActiveTab();
-        if (t != null) {
-            closeTab(t);
+        int idx = tabbedPane.getSelectedIndex();
+        if (idx != -1) {
+            closeTabAt(idx);
         }
     }
 
-    public BrowserTab getActiveTab() {
-        int idx = tabbedPane.getSelectedIndex();
-        if (idx != -1 && idx < tabs.size()) {
-            return (BrowserTab) tabbedPane.getComponentAt(idx);
+    private void closeTabAt(int idx) {
+        if (tabbedPane.getTabCount() <= 1) {
+            BrowserTab t = getActiveTab();
+            if (t != null) t.navigate(getHomeUrl(), "GET", false);
+            return;
+        }
+        Component comp = tabbedPane.getComponentAt(idx);
+        if (comp instanceof BrowserTab) {
+            tabs.remove(comp);
+        }
+        tabbedPane.remove(idx);
+    }
+
+    private BrowserTab getActiveTab() {
+        Component c = tabbedPane.getSelectedComponent();
+        if (c instanceof BrowserTab) {
+            return (BrowserTab) c;
         }
         return null;
     }
 
     private void registerShortcuts() {
-        // Ctrl+T: New tab
-        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
-                KeyStroke.getKeyStroke(KeyEvent.VK_T, ActionEvent.CTRL_MASK), "newTab");
-        getRootPane().getActionMap().put("newTab", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                addNewTab("http://localhost:8080/");
-            }
-        });
+        JComponent root = getRootPane();
 
-        // Ctrl+W: Close tab
-        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
-                KeyStroke.getKeyStroke(KeyEvent.VK_W, ActionEvent.CTRL_MASK), "closeTab");
-        getRootPane().getActionMap().put("closeTab", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                closeCurrentTab();
-            }
-        });
-
-        // F5: Reload
-        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
-                KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), "reload");
-        getRootPane().getActionMap().put("reload", new AbstractAction() {
+        root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), "RELOAD");
+        root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_R, ActionEvent.CTRL_MASK), "RELOAD");
+        root.getActionMap().put("RELOAD", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 BrowserTab t = getActiveTab();
                 if (t != null) t.reload();
             }
         });
-
-        // F12: DevTools
-        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
-                KeyStroke.getKeyStroke(KeyEvent.VK_F12, 0), "devTools");
-        getRootPane().getActionMap().put("devTools", new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                BrowserTab t = getActiveTab();
-                if (t != null) t.toggleDevTools();
-            }
-        });
     }
 
     /**
-     * Chạy tự động kiểm thử toàn bộ 12 tiêu chí và xuất báo cáo kết quả trực quan
+     * Chạy tự động kiểm thử 8 tiêu chí cốt lõi của đề tài Web Client (Browser).
      */
-    public void runAutoTest() {
-        javax.swing.JDialog dlg = new javax.swing.JDialog(this, "Kết Quả Kiểm Thử Đồ Án LTM (12/12 Tiêu Chí)", true);
-        dlg.setSize(680, 520);
+    private void runAutoTest() {
+        startLocalServer();
+
+        javax.swing.JDialog dlg = new javax.swing.JDialog(this, "Kết Quả Kiểm Thử Tự Động Web Client Browser (8/8 Tiêu Chí)", true);
+        dlg.setSize(700, 480);
         dlg.setLocationRelativeTo(this);
         dlg.setLayout(new BorderLayout(10, 10));
 
-        javax.swing.JTextArea txtReport = new javax.swing.JTextArea();
+        javax.swing.JTextArea txtReport = new javax.swing.JTextArea("Đang thực thi 8 ca kiểm thử tự động cho Web Client Browser...\n");
+        txtReport.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         txtReport.setEditable(false);
-        txtReport.setFont(new Font("Consolas", Font.PLAIN, 12));
-        txtReport.setBackground(new Color(248, 249, 250));
-        txtReport.setText("Đang thực thi 12 ca kiểm thử tự động, vui lòng chờ trong giây lát...\n");
-
+        txtReport.setBorder(BorderFactory.createEmptyBorder(14, 16, 14, 16));
         dlg.add(new javax.swing.JScrollPane(txtReport), BorderLayout.CENTER);
 
-        JButton btnClose = new JButton("Đóng hộp thoại");
+        JPanel bot = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton btnClose = UiUtil.createColoredButton(" Đóng báo cáo ", new Color(26, 115, 232), Color.WHITE, 6);
         btnClose.setEnabled(false);
-        btnClose.addActionListener(e -> dlg.dispose());
-        JPanel pnlBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        pnlBottom.add(btnClose);
-        dlg.add(pnlBottom, BorderLayout.SOUTH);
+        btnClose.addActionListener(ev -> dlg.setVisible(false));
+        bot.add(btnClose);
+        dlg.add(bot, BorderLayout.SOUTH);
 
         new Thread(() -> {
             StringBuilder sb = new StringBuilder();
-            sb.append("===================================================================\n");
-            sb.append("   KẾT QUẢ KIỂM THỬ ĐỒ ÁN MẠNG: WEB SERVER & WEB CLIENT\n");
-            sb.append("   (Đối chiếu trực tiếp theo Bảng Yêu Cầu của Giảng Viên)\n");
-            sb.append("===================================================================\n\n");
-
+            sb.append("======================================================================\n");
+            sb.append("   BÁO CÁO KIỂM THỬ TRÌNH DUYỆT WEB CLIENT (CHROME / CỐC CỐC - HTTP/1.1)\n");
+            sb.append("======================================================================\n\n");
             int passed = 0;
-            int total = 12;
+            int total = 8;
+            String base = getHomeUrl();
 
-            // 1. GET index.html
+            // 1. Giao thức HTTP/1.1 & Phương thức GET Trang chủ
             try {
-                HttpRequest req = new HttpRequest("http://localhost:8080/index.html", "GET");
-                HttpResponse res = HttpEngine.execute(req);
-                if (res.getStatusCode() == 200) {
-                    sb.append("  [✓ ĐẠT] 1. Giao thức HTTP GET: Tải trang HTML thành công (200 OK)\n");
+                HttpResponse r = HttpEngine.execute(new HttpRequest(base + "index.html", "GET"));
+                if (r.getStatusCode() == 200 && r.getStringBody().contains("Google")) {
+                    sb.append("  [ĐẠT] 1. Giao thức HTTP/1.1 (TCP Socket) & GET Trang chủ Google (200 OK)\n");
                     passed++;
-                } else throw new Exception("Code " + res.getStatusCode());
+                } else {
+                    throw new Exception("HTTP " + r.getStatusCode());
+                }
             } catch (Exception e) {
-                sb.append("  [✗ LỖI] 1. Giao thức HTTP GET: " + e.getMessage() + "\n");
+                sb.append("  [LỖI] 1. HTTP GET Trang chủ: ").append(e.getMessage()).append("\n");
             }
 
-            // 2. Dịch vụ PDF
+            // 2. Phương thức HTTP GET (Tìm kiếm Google với Query Params)
             try {
-                HttpRequest req = new HttpRequest("http://localhost:8080/sample.pdf", "GET");
-                HttpResponse res = HttpEngine.execute(req);
-                if (res.getStatusCode() == 200 && res.getContentType().contains("pdf")) {
-                    sb.append("  [✓ ĐẠT] 2. Dịch vụ Server: Tài liệu PDF (.pdf - " + res.getContentLength() + " bytes)\n");
+                HttpResponse r = HttpEngine.execute(new HttpRequest(base + "search?q=Lap+Trinh+Mang", "GET"));
+                if (r.getStatusCode() == 200 && r.getStringBody().contains("Lap Trinh Mang")) {
+                    sb.append("  [ĐẠT] 2. Phương thức HTTP GET: Tìm kiếm Google (/search?q=Lap+Trinh+Mang)\n");
                     passed++;
-                } else throw new Exception("Không đúng PDF");
+                } else {
+                    throw new Exception("HTTP " + r.getStatusCode());
+                }
             } catch (Exception e) {
-                sb.append("  [✗ LỖI] 2. Dịch vụ PDF: " + e.getMessage() + "\n");
+                sb.append("  [LỖI] 2. HTTP GET Tìm kiếm: ").append(e.getMessage()).append("\n");
             }
 
-            // 3. Dịch vụ MP3
+            // 3. Phương thức HTTP HEAD
             try {
-                HttpRequest req = new HttpRequest("http://localhost:8080/sample.mp3", "GET");
-                HttpResponse res = HttpEngine.execute(req);
-                if (res.getStatusCode() == 200 && res.getContentType().contains("audio/mpeg")) {
-                    sb.append("  [✓ ĐẠT] 3. Dịch vụ Server: Âm thanh MP3 (.mp3 - " + res.getContentLength() + " bytes)\n");
+                HttpResponse r = HttpEngine.execute(new HttpRequest(base + "about_http.html", "HEAD"));
+                if (r.getStatusCode() == 200 && r.getBodyBytes().length == 0 && r.getContentLength() > 0) {
+                    sb.append("  [ĐẠT] 3. Phương thức HTTP HEAD: Chỉ nhận Response Headers (Body = 0 bytes)\n");
                     passed++;
-                } else throw new Exception("Không đúng MP3");
+                } else {
+                    throw new Exception("HTTP " + r.getStatusCode());
+                }
             } catch (Exception e) {
-                sb.append("  [✗ LỖI] 3. Dịch vụ MP3: " + e.getMessage() + "\n");
+                sb.append("  [LỖI] 3. HTTP HEAD: ").append(e.getMessage()).append("\n");
             }
 
-            // 4. Dịch vụ MP4
+            // 4. Phương thức HTTP POST (Form UrlEncoded UTF-8)
             try {
-                HttpRequest req = new HttpRequest("http://localhost:8080/sample.mp4", "GET");
-                HttpResponse res = HttpEngine.execute(req);
-                if (res.getStatusCode() == 200 && res.getContentType().contains("video/mp4")) {
-                    sb.append("  [✓ ĐẠT] 4. Dịch vụ Server: Video MP4 (.mp4 - " + res.getContentLength() + " bytes)\n");
-                    passed++;
-                } else throw new Exception("Không đúng MP4");
-            } catch (Exception e) {
-                sb.append("  [✗ LỖI] 4. Dịch vụ MP4: " + e.getMessage() + "\n");
-            }
-
-            // 5. Dịch vụ PNG
-            try {
-                HttpRequest req = new HttpRequest("http://localhost:8080/sample.png", "GET");
-                HttpResponse res = HttpEngine.execute(req);
-                if (res.getStatusCode() == 200 && res.getContentType().contains("image/png")) {
-                    sb.append("  [✓ ĐẠT] 5. Dịch vụ Server: Hình ảnh PNG (.png - " + res.getContentLength() + " bytes)\n");
-                    passed++;
-                } else throw new Exception("Không đúng PNG");
-            } catch (Exception e) {
-                sb.append("  [✗ LỖI] 5. Dịch vụ PNG: " + e.getMessage() + "\n");
-            }
-
-            // 6. Dịch vụ TXT
-            try {
-                HttpRequest req = new HttpRequest("http://localhost:8080/sample.txt", "GET");
-                HttpResponse res = HttpEngine.execute(req);
-                if (res.getStatusCode() == 200 && res.getContentType().contains("text/plain")) {
-                    sb.append("  [✓ ĐẠT] 6. Dịch vụ Server: Văn bản thuần TXT (.txt - " + res.getContentLength() + " bytes)\n");
-                    passed++;
-                } else throw new Exception("Không đúng TXT");
-            } catch (Exception e) {
-                sb.append("  [✗ LỖI] 6. Dịch vụ TXT: " + e.getMessage() + "\n");
-            }
-
-            // 7. HTTP HEAD
-            try {
-                HttpRequest req = new HttpRequest("http://localhost:8080/index.html", "HEAD");
-                HttpResponse res = HttpEngine.execute(req);
-                if (res.getStatusCode() == 200 && res.getBodyBytes().length == 0) {
-                    sb.append("  [✓ ĐẠT] 7. Phương thức HTTP HEAD: Nhận đủ Headers, không tải Body\n");
-                    passed++;
-                } else throw new Exception("HEAD thất bại");
-            } catch (Exception e) {
-                sb.append("  [✗ LỖI] 7. HTTP HEAD: " + e.getMessage() + "\n");
-            }
-
-            // 8. HTTP POST
-            try {
-                HttpRequest req = new HttpRequest("http://localhost:8080/api/submit", "POST");
+                HttpRequest req = new HttpRequest(base + "api/submit", "POST");
                 req.setContentType("application/x-www-form-urlencoded");
                 req.setBody("hoten=Nguyen+Van+A&masv=21IT001".getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                HttpResponse res = HttpEngine.execute(req);
-                if (res.getStatusCode() == 200 && res.getStringBody().contains("Nguyen Van A")) {
-                    sb.append("  [✓ ĐẠT] 8. Phương thức HTTP POST: Gửi Form dữ liệu & nhận kết quả phân tích\n");
+                HttpResponse r = HttpEngine.execute(req);
+                if (r.getStatusCode() == 200 && r.getStringBody().contains("Nguyen Van A")) {
+                    sb.append("  [ĐẠT] 4. Phương thức HTTP POST (Form UrlEncoded): Gửi & nhận phản hồi 200 OK\n");
                     passed++;
-                } else throw new Exception("POST thất bại");
+                } else {
+                    throw new Exception("HTTP " + r.getStatusCode());
+                }
             } catch (Exception e) {
-                sb.append("  [✗ LỖI] 8. HTTP POST: " + e.getMessage() + "\n");
+                sb.append("  [LỖI] 4. HTTP POST (Form): ").append(e.getMessage()).append("\n");
             }
 
-            // 9. HTTP 404
+            // 5. Phương thức HTTP POST (JSON Payload UTF-8)
             try {
-                HttpRequest req = new HttpRequest("http://localhost:8080/file_khong_ton_tai.html", "GET");
-                HttpResponse res = HttpEngine.execute(req);
-                if (res.getStatusCode() == 404) {
-                    sb.append("  [✓ ĐẠT] 9. Xử lý mã lỗi HTTP 404 Not Found chuẩn xác\n");
+                HttpRequest req = new HttpRequest(base + "api/json", "POST");
+                req.setContentType("application/json; charset=UTF-8");
+                req.setBody("{\"hoten\":\"Tran Binh\",\"lop\":\"LTM\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                HttpResponse r = HttpEngine.execute(req);
+                if (r.getStatusCode() == 200 && r.getStringBody().contains("Tran Binh")) {
+                    sb.append("  [ĐẠT] 5. Phương thức HTTP POST (JSON Payload): Gửi & nhận phản hồi 200 OK\n");
                     passed++;
-                } else throw new Exception("Không ra 404");
+                } else {
+                    throw new Exception("HTTP " + r.getStatusCode());
+                }
             } catch (Exception e) {
-                sb.append("  [✗ LỖI] 9. Lỗi 404: " + e.getMessage() + "\n");
+                sb.append("  [LỖI] 5. HTTP POST (JSON): ").append(e.getMessage()).append("\n");
             }
 
-            // 10. URL & DNS IP
+            // 6. Xử lý mã lỗi HTTP 404 Not Found & Phân giải DNS IP
             try {
-                UrlDnsInfo info = UrlDnsInfo.analyze("http://localhost:8080/sample.pdf");
-                if ("localhost".equals(info.getHost()) && info.getPrimaryIp() != null) {
-                    sb.append("  [✓ ĐẠT] 10. Phân tích URL & phân giải DNS IP (diachi.java & inet.java)\n");
+                HttpResponse r = HttpEngine.execute(new HttpRequest(base + "duong_dan_khong_ton_tai.html", "GET"));
+                UrlDnsInfo info = UrlDnsInfo.analyze(base);
+                if (r.getStatusCode() == 404 && "localhost".equals(info.getHost()) && info.getPrimaryIp() != null) {
+                    sb.append("  [ĐẠT] 6. Xử lý mã trạng thái HTTP 404 Not Found & Phân giải DNS IP\n");
                     passed++;
-                } else throw new Exception("DNS thất bại");
+                } else {
+                    throw new Exception("HTTP " + r.getStatusCode());
+                }
             } catch (Exception e) {
-                sb.append("  [✗ LỖI] 10. URL & DNS: " + e.getMessage() + "\n");
+                sb.append("  [LỖI] 6. HTTP 404 & DNS: ").append(e.getMessage()).append("\n");
             }
 
-            // 11. History
+            // 7. Quản lý Lịch sử duyệt web (History Manager)
             try {
-                HistoryManager.add("http://localhost:8080/autotest", "AutoTest Page", "GET");
-                if (HistoryManager.search("autotest").size() > 0) {
-                    sb.append("  [✓ ĐẠT] 11. Quản lý Lịch sử duyệt web (History): Ghi vết và tìm kiếm\n");
+                HistoryManager.add(base + "autotest_history", "AutoTest History", "GET");
+                if (!HistoryManager.search("autotest_history", "GET").isEmpty()) {
+                    sb.append("  [ĐẠT] 7. Quản lý Lịch sử duyệt web (History - Ctrl+H): Lưu vết & tìm kiếm\n");
                     passed++;
-                } else throw new Exception("History thất bại");
+                } else {
+                    throw new Exception("Không tìm thấy lịch sử");
+                }
             } catch (Exception e) {
-                sb.append("  [✗ LỖI] 11. History: " + e.getMessage() + "\n");
+                sb.append("  [LỖI] 7. History: ").append(e.getMessage()).append("\n");
             }
 
-            // 12. Download Manager
+            // 8. Quản lý Tải xuống (Download Manager)
             try {
-                java.io.File temp = java.io.File.createTempFile("ltm_test_dl", ".pdf");
+                java.io.File temp = java.io.File.createTempFile("ltm_browser_dl_", ".html");
                 temp.deleteOnExit();
-                HttpEngine.downloadToFile("http://localhost:8080/sample.pdf", temp, null);
+                HttpEngine.downloadToFile(base + "about_http.html", temp, null);
                 if (temp.exists() && temp.length() > 0) {
-                    sb.append("  [✓ ĐẠT] 12. Quản lý Tải xuống (Download Manager): Ghi file ra ổ cứng\n");
+                    sb.append("  [ĐẠT] 8. Quản lý Tải xuống (Download - Ctrl+J): Tải trang qua HTTP Socket\n");
                     passed++;
-                } else throw new Exception("Download thất bại");
+                } else {
+                    throw new Exception("File tải về rỗng");
+                }
             } catch (Exception e) {
-                sb.append("  [✗ LỖI] 12. Download: " + e.getMessage() + "\n");
+                sb.append("  [LỖI] 8. Download: ").append(e.getMessage()).append("\n");
             }
 
-            sb.append("\n===================================================================\n");
-            sb.append("   KẾT LUẬN: ĐÃ ĐẠT " + passed + " / " + total + " TIÊU CHÍ (100% HOÀN TẤT)!\n");
-            sb.append("   ĐỒ ÁN ĐÁP ỨNG TOÀN DIỆN MỌI YÊU CẦU CỦA ĐỀ BÀI.\n");
-            sb.append("===================================================================\n");
+            sb.append("\n======================================================================\n");
+            sb.append("   KẾT LUẬN: ĐẠT ").append(passed).append(" / ").append(total).append(" TIÊU CHÍ CỦA ĐỀ TÀI WEB CLIENT (BROWSER)!\n");
+            sb.append("======================================================================\n");
 
             SwingUtilities.invokeLater(() -> {
                 txtReport.setText(sb.toString());
@@ -687,57 +543,40 @@ public class WebBrowser extends JFrame {
     }
 
     /**
-     * Khoi dong Web Server cong 8080 ngay trong trinh duyet
+     * Luôn khởi tạo ServerSocket riêng cho tiến trình trình duyệt hiện tại
+     * (tránh xung đột với các ứng dụng khác đang chiếm cổng 8080 trên máy).
      */
     public synchronized void startLocalServer() {
         if (activeServerSocket != null && !activeServerSocket.isClosed()) {
             return;
         }
-
-        try {
-            activeServerSocket = new ServerSocket(8080);
-            lblServerStatus.setText(" |  Web Server: ĐANG CHẠY (Cổng 8080)");
-            lblServerStatus.setForeground(new Color(19, 115, 51));
-            System.out.println("Web Server da bat tren cong 8080.");
-
-            new Thread(() -> {
-                while (activeServerSocket != null && !activeServerSocket.isClosed()) {
-                    try {
-                        java.net.Socket client = activeServerSocket.accept();
-                        new Thread(new httpServer(client)).start();
-                    } catch (IOException ex) {
-                        break;
-                    }
-                }
-            }).start();
-        } catch (IOException e) {
+        int[] candidatePorts = {8899, 8898, 8897, 9088, 0};
+        for (int p : candidatePorts) {
             try {
-                java.net.Socket s = new java.net.Socket("localhost", 8080);
-                s.close();
-                lblServerStatus.setText(" |  Web Server: ĐANG CHẠY (Cổng 8080)");
-                lblServerStatus.setForeground(new Color(19, 115, 51));
-            } catch (Exception ex) {
-                lblServerStatus.setText(" |  Web Server: Lỗi cổng 8080 (" + e.getMessage() + ")");
-                lblServerStatus.setForeground(Color.RED);
-            }
+                activeServerSocket = new ServerSocket(p);
+                serverPort = activeServerSocket.getLocalPort();
+                break;
+            } catch (IOException ignored) {}
         }
-    }
+        if (activeServerSocket == null) {
+            return;
+        }
 
-    public synchronized void stopLocalServer() {
-        try {
-            if (activeServerSocket != null && !activeServerSocket.isClosed()) {
-                activeServerSocket.close();
-                activeServerSocket = null;
+        Thread serverAcceptThread = new Thread(() -> {
+            while (activeServerSocket != null && !activeServerSocket.isClosed()) {
+                try {
+                    Socket client = activeServerSocket.accept();
+                    new Thread(new httpServer(client)).start();
+                } catch (IOException ex) {
+                    break;
+                }
             }
-            lblServerStatus.setText(" |  Web Server: ĐÃ DỪNG");
-            lblServerStatus.setForeground(new Color(120, 120, 120));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        }, "LocalHttpServer-Thread");
+        serverAcceptThread.setDaemon(true);
+        serverAcceptThread.start();
     }
 
     public static void main(String[] args) {
-        // Set Look and Feel cho giong Chrome tren he dieu hanh
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception ignored) {}

@@ -1,6 +1,6 @@
 package browser;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class HttpRequest {
@@ -12,10 +12,11 @@ public class HttpRequest {
 
     public HttpRequest(String url, String method) {
         this.url = url;
-        this.method = method.toUpperCase();
-        this.headers = new HashMap<>();
-        this.headers.put("User-Agent", "LTM-WebBrowser/1.0 (Chrome/CocCoc-like)");
-        this.headers.put("Accept", "*/*");
+        this.method = method != null ? method.toUpperCase() : "GET";
+        this.headers = new LinkedHashMap<>();
+        this.headers.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) LTM-GoogleChromeClient/1.1");
+        this.headers.put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/*,*/*;q=0.8");
+        this.headers.put("Accept-Language", "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7");
         this.headers.put("Connection", "close");
     }
 
@@ -57,7 +58,7 @@ public class HttpRequest {
 
     public void setContentType(String contentType) {
         this.contentType = contentType;
-        if (contentType != null) {
+        if (contentType != null && !contentType.isEmpty()) {
             headers.put("Content-Type", contentType);
         }
     }

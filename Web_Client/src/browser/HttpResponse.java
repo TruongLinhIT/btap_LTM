@@ -16,6 +16,8 @@ public class HttpResponse {
     private String resolvedIp = "";
     private String requestUrl = "";
     private String requestMethod = "GET";
+    private String rawRequestText = "";
+    private String protocolEngine = "HTTP/1.1 TCP Socket";
 
     public HttpResponse() {
     }
@@ -29,7 +31,7 @@ public class HttpResponse {
     }
 
     public String getStatusMessage() {
-        return statusMessage;
+        return statusMessage != null ? statusMessage : "";
     }
 
     public void setStatusMessage(String statusMessage) {
@@ -57,13 +59,13 @@ public class HttpResponse {
 
     public void setBodyBytes(byte[] bodyBytes) {
         this.bodyBytes = bodyBytes;
-        if (bodyBytes != null && contentLength <= 0) {
+        if (bodyBytes != null && contentLength < 0) {
             contentLength = bodyBytes.length;
         }
     }
 
     public String getContentType() {
-        return contentType;
+        return contentType != null ? contentType : "text/plain";
     }
 
     public void setContentType(String contentType) {
@@ -71,7 +73,8 @@ public class HttpResponse {
     }
 
     public long getContentLength() {
-        return contentLength;
+        if (contentLength >= 0) return contentLength;
+        return bodyBytes != null ? bodyBytes.length : 0;
     }
 
     public void setContentLength(long contentLength) {
@@ -87,7 +90,7 @@ public class HttpResponse {
     }
 
     public String getResolvedIp() {
-        return resolvedIp;
+        return resolvedIp != null && !resolvedIp.isEmpty() ? resolvedIp : "127.0.0.1";
     }
 
     public void setResolvedIp(String resolvedIp) {
@@ -108,6 +111,22 @@ public class HttpResponse {
 
     public void setRequestMethod(String requestMethod) {
         this.requestMethod = requestMethod;
+    }
+
+    public String getRawRequestText() {
+        return rawRequestText;
+    }
+
+    public void setRawRequestText(String rawRequestText) {
+        this.rawRequestText = rawRequestText;
+    }
+
+    public String getProtocolEngine() {
+        return protocolEngine;
+    }
+
+    public void setProtocolEngine(String protocolEngine) {
+        this.protocolEngine = protocolEngine;
     }
 
     public boolean isHtml() {
@@ -148,7 +167,7 @@ public class HttpResponse {
 
     public String getRawHeadersString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("HTTP/1.1 ").append(statusCode).append(" ").append(statusMessage != null ? statusMessage : "").append("\n");
+        sb.append("HTTP/1.1 ").append(statusCode).append(" ").append(getStatusMessage()).append("\n");
         for (Map.Entry<String, String> e : headers.entrySet()) {
             sb.append(e.getKey()).append(": ").append(e.getValue()).append("\n");
         }
